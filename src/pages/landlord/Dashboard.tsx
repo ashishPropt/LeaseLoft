@@ -33,7 +33,7 @@ export default function LandlordDashboard() {
 
       const [{ data: props }, { data: units }, { data: leases }, { data: payments }, { data: maint }] = await Promise.all([
         supabase.from("properties").select("id,name").eq("owner_id", uid),
-        supabase.from("units").select("id,property_id,rent_amount"),
+        supabase.from("units").select("id,label,property_id,rent_amount"),
         supabase.from("leases").select("id,tenant_id,unit_id,rent_amount,status").eq("landlord_id", uid).eq("status", "active"),
         supabase.from("payments").select("id,lease_id,amount,due_date,paid_at,status,method").order("due_date", { ascending: false }).limit(200),
         supabase.from("maintenance_requests").select("id,title,priority,status,created_at,lease_id").in("status", ["open","in_progress"]).order("created_at", { ascending: false }).limit(5),

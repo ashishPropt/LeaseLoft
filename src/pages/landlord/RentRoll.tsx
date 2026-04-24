@@ -58,7 +58,7 @@ export default function LandlordRentRoll() {
           marketRent: Number(u.rent_amount ?? 0),
           tenant: lease ? (tenantById.get(lease.tenant_id) ?? "Tenant") : null,
           leaseRent: lease ? Number(lease.rent_amount) : null,
-          status: lease ? "occupied" : "vacant",
+          status: (lease ? "occupied" : "vacant") as "occupied" | "vacant",
         };
       }).sort((a, b) => a.property.localeCompare(b.property) || a.unit.localeCompare(b.unit)));
       setLoading(false);
