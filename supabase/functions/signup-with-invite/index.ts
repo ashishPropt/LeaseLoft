@@ -26,27 +26,29 @@ Deno.serve(async (req) => {
 
     // Validation
     if (!body.email || !body.password || !body.first_name || !body.last_name || !body.phone_e164 || !body.invite_code) {
-      return json({ error: "Missing required fields" }, 400);
+      return json({ error: "Please fill in all required fields." });
     }
-    if (body.password.length < 8) return json({ error: "Password must be at least 8 characters" }, 400);
-    if (!isE164(body.phone_e164)) return json({ error: "Phone must be in E.164 format (e.g. +15558675310)" }, 400);
+    if (body.password.length < 8) return json({ error: "Password must be at least 8 characters." });
+    if (!isE164(body.phone_e164)) return json({ error: "Phone must be a valid mobile number." });
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+    const normalizedCode = body.invite_code.trim().toUpperCase();
+
     // Pre-validate invite without consuming
     const { data: invite, error: inviteErr } = await admin
       .from("invite_codes")
       .select("*")
-      .eq("code", body.invite_code.trim().toUpperCase())
+      .eq("code", normalizedCode)
       .maybeSingle();
-    if (inviteErr) return json({ error: "Database error" }, 500);
-    if (!invite) return json({ error: "This invite code is not valid." }, 400);
-    if (invite.used_count >= invite.max_uses) return json({ error: "This invite code has already been used." }, 400);
-    if (invite.expires_at && new Date(invite.expires_at) < new Date()) return json({ error: "This invite code has expired." }, 400);
+    if (inviteErr) return json({ error: "We couldn't verify your invite right now. Please try again." });
+    if (!invite) return json({ error: "This invite code is not valid." });
+    if (invite.used_count >= invite.max_uses) return json({ error: "This invite code has already been used." });
+    if (invite.expires_at && new Date(invite.expires_at) < new Date()) return json({ error: "This invite code has expired." });
     if (invite.email && invite.email.toLowerCase() !== body.email.toLowerCase()) {
-      return json({ error: "This invite was sent to a different email address." }, 400);
+      return json({ error: "This invite was sent to a different email address." });
     }
 
     // Create user (auto-confirm so they can sign in; phone still needs SMS verification gate)
@@ -61,18 +63,23 @@ Deno.serve(async (req) => {
       },
     });
     if (createErr || !created.user) {
-      return json({ error: createErr?.message || "Could not create account" }, 400);
+      const msg = createErr?.message || "Could not create account";
+      const friendly = /already registered|already exists|duplicate/i.test(msg)
+        ? "An account with this email already exists. Try signing in instead."
+        : msg;
+      return json({ error: friendly });
     }
 
     // Redeem invite atomically
     const { data: redeem, error: redeemErr } = await admin.rpc("redeem_invite_code", {
-      _code: body.invite_code,
+      _code: normalizedCode,
       _user_id: created.user.id,
     });
     if (redeemErr || !redeem?.[0]?.success) {
       // Rollback user
       await admin.auth.admin.deleteUser(created.user.id);
-      return json({ error: redeem?.[0]?.message || "Could not redeem invite" }, 400);
+      console.error("redeem failed", { redeemErr, redeem, normalizedCode });
+      return json({ error: redeem?.[0]?.message || "We couldn't redeem your invite. Please try again or contact support." });
     }
 
     return json({
