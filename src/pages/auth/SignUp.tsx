@@ -22,6 +22,32 @@ const PW_RULES = [
   { id: "sym", label: "One symbol (!@#$…)", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ];
 
+/** Strip to digits and drop a leading 1 country code if present. Returns up to 10 NANP digits. */
+function nanpDigits(input: string): string {
+  let d = input.replace(/\D/g, "");
+  if (d.length === 11 && d.startsWith("1")) d = d.slice(1);
+  return d.slice(0, 10);
+}
+
+/** Format NANP digits as (XXX) XXX-XXXX progressively. */
+function formatNanp(input: string): string {
+  const d = nanpDigits(input);
+  if (d.length === 0) return "";
+  if (d.length < 4) return `(${d}`;
+  if (d.length < 7) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+
+/** Validate NANP: 10 digits, area code & exchange must start with 2-9. */
+function isValidNanp(input: string): boolean {
+  const d = nanpDigits(input);
+  return d.length === 10 && /^[2-9]\d{2}[2-9]\d{6}$/.test(d);
+}
+
+function toE164Nanp(input: string): string {
+  return `+1${nanpDigits(input)}`;
+}
+
 const SignUp = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("code");
@@ -33,7 +59,7 @@ const SignUp = () => {
     first_name: "",
     last_name: "",
     email: "",
-    phone_e164: "",
+    phone_display: "",
     password: "",
     confirm_password: "",
   });
@@ -54,6 +80,8 @@ const SignUp = () => {
   const passedRules = PW_RULES.filter((r) => r.test(form.password));
   const passwordStrong = passedRules.length === PW_RULES.length;
   const passwordsMatch = form.password.length > 0 && form.password === form.confirm_password;
+  const phoneValid = isValidNanp(form.phone_display);
+  const phoneE164 = toE164Nanp(form.phone_display);
 
   async function onValidateCode(e: React.FormEvent) {
     e.preventDefault();
@@ -88,6 +116,7 @@ const SignUp = () => {
 
   async function onSubmitDetails(e: React.FormEvent) {
     e.preventDefault();
+    if (!phoneValid) { toast.error("Enter a valid US or Canada mobile number"); return; }
     if (!passwordStrong) { toast.error("Password doesn't meet all requirements"); return; }
     if (!passwordsMatch) { toast.error("Passwords don't match"); return; }
     if (!agreed) { toast.error("Please agree to the Terms and Privacy Policy"); return; }
@@ -98,7 +127,7 @@ const SignUp = () => {
         first_name: form.first_name,
         last_name: form.last_name,
         email: form.email,
-        phone_e164: form.phone_e164,
+        phone_e164: phoneE164,
         password: form.password,
         invite_code: inviteCode,
       },
@@ -146,9 +175,9 @@ const SignUp = () => {
     else toast.success("New code sent");
   }
 
-  const phoneTail = form.phone_e164.slice(-4);
-  const phoneMasked = form.phone_e164
-    ? `${form.phone_e164.slice(0, form.phone_e164.length - 4).replace(/\d/g, "•")}${phoneTail}`
+  const phoneTail = phoneE164.slice(-4);
+  const phoneMasked = phoneValid
+    ? `+1 (•••) •••-${phoneTail}`
     : "";
 
   const subtitle =
@@ -268,15 +297,29 @@ const SignUp = () => {
 
           <div className="space-y-2">
             <Label htmlFor="phone">Mobile phone</Label>
-            <Input
-              id="phone"
-              placeholder="+15558675310"
-              required
-              value={form.phone_e164}
-              onChange={(e) => set("phone_e164", e.target.value)}
-            />
+            <div className="flex gap-2">
+              <div className="flex h-10 items-center rounded-md border border-input bg-muted/50 px-3 text-sm text-muted-foreground">
+                🇺🇸/🇨🇦 +1
+              </div>
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel-national"
+                placeholder="(555) 867-5310"
+                required
+                value={form.phone_display}
+                onChange={(e) => set("phone_display", formatNanp(e.target.value))}
+                aria-invalid={form.phone_display.length > 0 && !phoneValid}
+              />
+            </div>
+            {form.phone_display.length > 0 && !phoneValid && (
+              <p className="text-xs text-destructive">
+                Enter a valid 10-digit US or Canada mobile number.
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
-              Used for SMS two-factor authentication. Standard SMS rates may apply. We'll send a verification code next.
+              US/Canada numbers only. Standard SMS rates may apply. We'll send a verification code next.
             </p>
           </div>
 
@@ -368,7 +411,7 @@ const SignUp = () => {
           <Button
             type="submit"
             className="w-full"
-            disabled={loading || !passwordStrong || !passwordsMatch || !agreed}
+            disabled={loading || !phoneValid || !passwordStrong || !passwordsMatch || !agreed}
           >
             {loading ? "Creating account…" : "Continue"}
           </Button>
