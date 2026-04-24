@@ -175,9 +175,9 @@ const SignUp = () => {
     else toast.success("New code sent");
   }
 
-  const phoneTail = form.phone_e164.slice(-4);
-  const phoneMasked = form.phone_e164
-    ? `${form.phone_e164.slice(0, form.phone_e164.length - 4).replace(/\d/g, "•")}${phoneTail}`
+  const phoneTail = phoneE164.slice(-4);
+  const phoneMasked = phoneValid
+    ? `+1 (•••) •••-${phoneTail}`
     : "";
 
   const subtitle =
