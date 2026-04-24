@@ -139,9 +139,13 @@ const SignUp = () => {
         invite_code: inviteCode,
       },
     });
-    if (error || (data && (data as { error?: string }).error)) {
-      const msg = (data as { error?: string })?.error || error?.message || "Signup failed";
-      toast.error(msg);
+    if (error) {
+      toast.error("We couldn't create your account right now. Please try again.");
+      setLoading(false);
+      return;
+    }
+    if (data && (data as { error?: string }).error) {
+      toast.error((data as { error?: string }).error!);
       setLoading(false);
       return;
     }
