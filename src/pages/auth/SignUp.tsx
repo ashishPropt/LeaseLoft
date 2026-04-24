@@ -122,6 +122,7 @@ const SignUp = () => {
 
   async function onSubmitDetails(e: React.FormEvent) {
     e.preventDefault();
+    if (!emailValid) { toast.error("Enter a valid email address"); return; }
     if (!phoneValid) { toast.error("Enter a valid US or Canada mobile number"); return; }
     if (!passwordStrong) { toast.error("Password doesn't meet all requirements"); return; }
     if (!passwordsMatch) { toast.error("Passwords don't match"); return; }
