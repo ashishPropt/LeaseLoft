@@ -22,6 +22,32 @@ const PW_RULES = [
   { id: "sym", label: "One symbol (!@#$…)", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ];
 
+/** Strip to digits and drop a leading 1 country code if present. Returns up to 10 NANP digits. */
+function nanpDigits(input: string): string {
+  let d = input.replace(/\D/g, "");
+  if (d.length === 11 && d.startsWith("1")) d = d.slice(1);
+  return d.slice(0, 10);
+}
+
+/** Format NANP digits as (XXX) XXX-XXXX progressively. */
+function formatNanp(input: string): string {
+  const d = nanpDigits(input);
+  if (d.length === 0) return "";
+  if (d.length < 4) return `(${d}`;
+  if (d.length < 7) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+
+/** Validate NANP: 10 digits, area code & exchange must start with 2-9. */
+function isValidNanp(input: string): boolean {
+  const d = nanpDigits(input);
+  return d.length === 10 && /^[2-9]\d{2}[2-9]\d{6}$/.test(d);
+}
+
+function toE164Nanp(input: string): string {
+  return `+1${nanpDigits(input)}`;
+}
+
 const SignUp = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("code");
