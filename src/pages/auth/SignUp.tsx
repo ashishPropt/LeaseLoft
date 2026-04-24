@@ -82,6 +82,7 @@ const SignUp = () => {
   const passwordsMatch = form.password.length > 0 && form.password === form.confirm_password;
   const phoneValid = isValidNanp(form.phone_display);
   const phoneE164 = toE164Nanp(form.phone_display);
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
 
   async function onValidateCode(e: React.FormEvent) {
     e.preventDefault();
