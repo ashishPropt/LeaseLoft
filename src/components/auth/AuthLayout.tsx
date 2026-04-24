@@ -25,7 +25,7 @@ export const AuthLayout = ({ title, subtitle, children, footer }: Props) => {
 
       {/* Right: brand panel */}
       <div className="hidden lg:flex bg-gradient-dark text-white p-12 flex-col justify-between">
-        <Logo size="md" />
+        <Logo size="md" variant="dark" />
         <div className="max-w-md">
           <h2 className="text-3xl font-medium leading-tight">
             Property management,<br />
