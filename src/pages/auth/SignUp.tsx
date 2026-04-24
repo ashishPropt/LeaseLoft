@@ -310,11 +310,16 @@ const SignUp = () => {
               onChange={(e) => set("email", e.target.value)}
               readOnly={prefilled.email}
               className={prefilled.email ? "bg-muted/50 cursor-not-allowed" : ""}
+              aria-invalid={!prefilled.email && form.email.length > 0 && !emailValid}
             />
-            {prefilled.email && (
+            {prefilled.email ? (
               <p className="text-xs text-muted-foreground">
                 This invite was sent to a specific email and can't be changed.
               </p>
+            ) : (
+              form.email.length > 0 && !emailValid && (
+                <p className="text-xs text-destructive">Enter a valid email address.</p>
+              )
             )}
           </div>
 
