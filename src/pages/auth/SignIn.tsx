@@ -16,26 +16,33 @@ const SignIn = () => {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      // 2FA temporarily disabled — keep send/verify edge functions and Verify2FA page for later re-enable.
+      const userId = data.user?.id;
+      let dest = "/";
+      if (userId) {
+        try {
+          const rolesPromise = supabase.from("user_roles").select("role").eq("user_id", userId);
+          const timeout = new Promise<{ data: null }>((resolve) => setTimeout(() => resolve({ data: null }), 4000));
+          const result: any = await Promise.race([rolesPromise, timeout]);
+          const role = result?.data?.[0]?.role;
+          if (role === "landlord") dest = "/landlord";
+          else if (role === "admin") dest = "/admin";
+          else if (role === "tenant") dest = "/tenant";
+        } catch (err) {
+          console.error("Role lookup failed", err);
+        }
+      }
+      toast.success("Signed in");
+      navigate(dest, { replace: true });
+    } finally {
       setLoading(false);
-      toast.error(error.message);
-      return;
     }
-    // 2FA temporarily disabled — keep send/verify edge functions and Verify2FA page for later re-enable.
-    // To re-enable: restore the OTP send + navigate("/verify-2fa") below, and switch RequireAuth back to enforcing mfa_sessions.
-    const userId = data.user?.id;
-    let dest = "/";
-    if (userId) {
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-      const role = roles?.[0]?.role;
-      if (role === "landlord") dest = "/landlord";
-      else if (role === "admin") dest = "/admin";
-      else if (role === "tenant") dest = "/tenant";
-    }
-    setLoading(false);
-    toast.success("Signed in");
-    navigate(dest, { replace: true });
   }
 
   return (
