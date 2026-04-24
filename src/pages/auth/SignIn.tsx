@@ -58,7 +58,7 @@ const SignIn = () => {
           <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Signing in…" : "Continue"}
+          {loading ? "Signing in…" : "Continue to phone verification"}
         </Button>
       </form>
     </AuthLayout>
