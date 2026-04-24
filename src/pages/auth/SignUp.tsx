@@ -82,6 +82,7 @@ const SignUp = () => {
   const passwordsMatch = form.password.length > 0 && form.password === form.confirm_password;
   const phoneValid = isValidNanp(form.phone_display);
   const phoneE164 = toE164Nanp(form.phone_display);
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
 
   async function onValidateCode(e: React.FormEvent) {
     e.preventDefault();
@@ -92,25 +93,12 @@ const SignUp = () => {
     });
     setValidating(false);
 
-    // Try to extract a friendly error message from the function response body
-    let errMsg: string | null = null;
     if (error) {
-      const ctx = (error as { context?: Response }).context;
-      if (ctx && typeof ctx.json === "function") {
-        try {
-          const body = await ctx.json();
-          errMsg = body?.error || null;
-        } catch {
-          /* ignore */
-        }
-      }
-      errMsg = errMsg || error.message || "Could not validate code";
-    } else if (data && (data as { error?: string }).error) {
-      errMsg = (data as { error?: string }).error!;
+      toast.error("We couldn't verify your code right now. Please try again.");
+      return;
     }
-
-    if (errMsg) {
-      toast.error(errMsg);
+    if (data && (data as { error?: string }).error) {
+      toast.error((data as { error?: string }).error!);
       return;
     }
 
@@ -134,6 +122,7 @@ const SignUp = () => {
 
   async function onSubmitDetails(e: React.FormEvent) {
     e.preventDefault();
+    if (!emailValid) { toast.error("Enter a valid email address"); return; }
     if (!phoneValid) { toast.error("Enter a valid US or Canada mobile number"); return; }
     if (!passwordStrong) { toast.error("Password doesn't meet all requirements"); return; }
     if (!passwordsMatch) { toast.error("Passwords don't match"); return; }
@@ -321,11 +310,16 @@ const SignUp = () => {
               onChange={(e) => set("email", e.target.value)}
               readOnly={prefilled.email}
               className={prefilled.email ? "bg-muted/50 cursor-not-allowed" : ""}
+              aria-invalid={!prefilled.email && form.email.length > 0 && !emailValid}
             />
-            {prefilled.email && (
+            {prefilled.email ? (
               <p className="text-xs text-muted-foreground">
                 This invite was sent to a specific email and can't be changed.
               </p>
+            ) : (
+              form.email.length > 0 && !emailValid && (
+                <p className="text-xs text-destructive">Enter a valid email address.</p>
+              )
             )}
           </div>
 
@@ -445,7 +439,7 @@ const SignUp = () => {
           <Button
             type="submit"
             className="w-full"
-            disabled={loading || !phoneValid || !passwordStrong || !passwordsMatch || !agreed}
+            disabled={loading || !emailValid || !phoneValid || !passwordStrong || !passwordsMatch || !agreed}
           >
             {loading ? "Creating account…" : "Continue"}
           </Button>
