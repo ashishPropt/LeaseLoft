@@ -31,7 +31,7 @@ const SignIn = () => {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in with your email and password. We'll send a verification code to your phone."
+      subtitle="Sign in with your email and password."
       footer={
         <>
           Have an invite code?{" "}
