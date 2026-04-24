@@ -21,8 +21,12 @@ export const AppSidebar = ({ role, items, user }: AppSidebarProps) => {
   const navigate = useNavigate();
 
   async function signOut() {
-    await supabase.auth.signOut();
-    navigate("/signin");
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Sign out error", err);
+    }
+    window.location.href = "/signin";
   }
 
   return (
