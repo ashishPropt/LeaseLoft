@@ -40,6 +40,7 @@
     --success-foreground: 0 0% 100%;
     --warning: 36 90% 45%;
     --warning-foreground: 0 0% 100%;
+    --warning-foreground-strong: 30 90% 28%;
 
     --border: 150 12% 88%;
     --input: 150 12% 88%;
