@@ -59,7 +59,7 @@ const SignUp = () => {
     first_name: "",
     last_name: "",
     email: "",
-    phone_e164: "",
+    phone_display: "",
     password: "",
     confirm_password: "",
   });
@@ -80,6 +80,8 @@ const SignUp = () => {
   const passedRules = PW_RULES.filter((r) => r.test(form.password));
   const passwordStrong = passedRules.length === PW_RULES.length;
   const passwordsMatch = form.password.length > 0 && form.password === form.confirm_password;
+  const phoneValid = isValidNanp(form.phone_display);
+  const phoneE164 = toE164Nanp(form.phone_display);
 
   async function onValidateCode(e: React.FormEvent) {
     e.preventDefault();
