@@ -411,7 +411,7 @@ const SignUp = () => {
           <Button
             type="submit"
             className="w-full"
-            disabled={loading || !passwordStrong || !passwordsMatch || !agreed}
+            disabled={loading || !phoneValid || !passwordStrong || !passwordsMatch || !agreed}
           >
             {loading ? "Creating account…" : "Continue"}
           </Button>
