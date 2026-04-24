@@ -23,15 +23,19 @@ export const RequireAuth = ({ children, requireRole }: Props) => {
       const userId = sess.session.user.id;
       const deviceId = getDeviceId();
 
-      const { data: mfa } = await supabase
-        .from("mfa_sessions")
-        .select("expires_at")
-        .eq("user_id", userId)
-        .eq("device_id", deviceId)
-        .maybeSingle();
+      // 2FA temporarily disabled. Keep mfa_sessions check below for later re-enable.
+      const SKIP_MFA = true;
+      if (!SKIP_MFA) {
+        const { data: mfa } = await supabase
+          .from("mfa_sessions")
+          .select("expires_at")
+          .eq("user_id", userId)
+          .eq("device_id", deviceId)
+          .maybeSingle();
 
-      const valid = mfa && new Date(mfa.expires_at) > new Date();
-      if (!valid) { if (!cancelled) setState("needs-mfa"); return; }
+        const valid = mfa && new Date(mfa.expires_at) > new Date();
+        if (!valid) { if (!cancelled) setState("needs-mfa"); return; }
+      }
 
       if (requireRole) {
         const { data: roles } = await supabase
