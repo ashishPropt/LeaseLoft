@@ -92,25 +92,12 @@ const SignUp = () => {
     });
     setValidating(false);
 
-    // Try to extract a friendly error message from the function response body
-    let errMsg: string | null = null;
     if (error) {
-      const ctx = (error as { context?: Response }).context;
-      if (ctx && typeof ctx.json === "function") {
-        try {
-          const body = await ctx.json();
-          errMsg = body?.error || null;
-        } catch {
-          /* ignore */
-        }
-      }
-      errMsg = errMsg || error.message || "Could not validate code";
-    } else if (data && (data as { error?: string }).error) {
-      errMsg = (data as { error?: string }).error!;
+      toast.error("We couldn't verify your code right now. Please try again.");
+      return;
     }
-
-    if (errMsg) {
-      toast.error(errMsg);
+    if (data && (data as { error?: string }).error) {
+      toast.error((data as { error?: string }).error!);
       return;
     }
 
