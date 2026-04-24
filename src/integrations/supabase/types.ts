@@ -136,6 +136,7 @@ export type Database = {
           end_date: string
           id: string
           landlord_id: string
+          property_id: string | null
           rent_amount: number
           start_date: string
           status: Database["public"]["Enums"]["lease_status"]
@@ -148,6 +149,7 @@ export type Database = {
           end_date: string
           id?: string
           landlord_id: string
+          property_id?: string | null
           rent_amount: number
           start_date: string
           status?: Database["public"]["Enums"]["lease_status"]
@@ -160,6 +162,7 @@ export type Database = {
           end_date?: string
           id?: string
           landlord_id?: string
+          property_id?: string | null
           rent_amount?: number
           start_date?: string
           status?: Database["public"]["Enums"]["lease_status"]

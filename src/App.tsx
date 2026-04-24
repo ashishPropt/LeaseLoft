@@ -9,6 +9,12 @@ import SignIn from "./pages/auth/SignIn.tsx";
 import SignUp from "./pages/auth/SignUp.tsx";
 import Verify2FA from "./pages/auth/Verify2FA.tsx";
 import ResetPassword from "./pages/auth/ResetPassword.tsx";
+import LandlordDashboard from "./pages/landlord/Dashboard.tsx";
+import LandlordPayments from "./pages/landlord/Payments.tsx";
+import LandlordTenants from "./pages/landlord/Tenants.tsx";
+import LandlordRentRoll from "./pages/landlord/RentRoll.tsx";
+import LandlordMaintenance from "./pages/landlord/Maintenance.tsx";
+import LandlordInvite from "./pages/landlord/Invite.tsx";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +30,12 @@ const App = () => (
           <Route path="/signup" element={<SignUp />} />
           <Route path="/verify-2fa" element={<Verify2FA />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/landlord" element={<LandlordDashboard />} />
+          <Route path="/landlord/payments" element={<LandlordPayments />} />
+          <Route path="/landlord/tenants" element={<LandlordTenants />} />
+          <Route path="/landlord/rent-roll" element={<LandlordRentRoll />} />
+          <Route path="/landlord/maintenance" element={<LandlordMaintenance />} />
+          <Route path="/landlord/invite" element={<LandlordInvite />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

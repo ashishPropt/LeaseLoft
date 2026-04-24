@@ -10,10 +10,19 @@ const Index = () => {
   const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setHasSession(!!data.session));
-    const { data: l } = supabase.auth.onAuthStateChange((_, s) => setHasSession(!!s));
+    async function check(session: any) {
+      setHasSession(!!session);
+      if (!session) return;
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id);
+      const role = roles?.[0]?.role;
+      if (role === "landlord") navigate("/landlord", { replace: true });
+      else if (role === "admin") navigate("/admin", { replace: true });
+      else if (role === "tenant") navigate("/tenant", { replace: true });
+    }
+    supabase.auth.getSession().then(({ data }) => check(data.session));
+    const { data: l } = supabase.auth.onAuthStateChange((_, s) => check(s));
     return () => l.subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   async function signOut() {
     await supabase.auth.signOut();
