@@ -22,14 +22,10 @@ const SignIn = () => {
       toast.error(error.message);
       return;
     }
-    // Trigger SMS OTP send
-    const { error: sendErr } = await supabase.functions.invoke("send-sms-otp");
-    if (sendErr) {
-      toast.error("Could not send verification code");
-      return;
-    }
-    toast.success("Verification code sent");
-    navigate("/verify-2fa");
+    // 2FA temporarily disabled — keep send/verify edge functions and Verify2FA page for later re-enable.
+    // To re-enable: restore the OTP send + navigate("/verify-2fa") below, and switch RequireAuth back to enforcing mfa_sessions.
+    toast.success("Signed in");
+    navigate("/");
   }
 
   return (
