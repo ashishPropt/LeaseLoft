@@ -15,6 +15,16 @@ import LandlordTenants from "./pages/landlord/Tenants.tsx";
 import LandlordRentRoll from "./pages/landlord/RentRoll.tsx";
 import LandlordMaintenance from "./pages/landlord/Maintenance.tsx";
 import LandlordInvite from "./pages/landlord/Invite.tsx";
+import AdminUsers from "./pages/admin/Users.tsx";
+import AdminInvites from "./pages/admin/Invites.tsx";
+import AdminProperties from "./pages/admin/Properties.tsx";
+import TenantDashboard from "./pages/tenant/Dashboard.tsx";
+import TenantLease from "./pages/tenant/Lease.tsx";
+import TenantPayRent from "./pages/tenant/PayRent.tsx";
+import TenantPayments from "./pages/tenant/Payments.tsx";
+import TenantMaintenance from "./pages/tenant/Maintenance.tsx";
+import TenantDocuments from "./pages/tenant/Documents.tsx";
+import TenantProfile from "./pages/tenant/Profile.tsx";
 
 const queryClient = new QueryClient();
 
@@ -30,12 +40,26 @@ const App = () => (
           <Route path="/signup" element={<SignUp />} />
           <Route path="/verify-2fa" element={<Verify2FA />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+
           <Route path="/landlord" element={<LandlordDashboard />} />
           <Route path="/landlord/payments" element={<LandlordPayments />} />
           <Route path="/landlord/tenants" element={<LandlordTenants />} />
           <Route path="/landlord/rent-roll" element={<LandlordRentRoll />} />
           <Route path="/landlord/maintenance" element={<LandlordMaintenance />} />
           <Route path="/landlord/invite" element={<LandlordInvite />} />
+
+          <Route path="/admin" element={<AdminUsers />} />
+          <Route path="/admin/invites" element={<AdminInvites />} />
+          <Route path="/admin/properties" element={<AdminProperties />} />
+
+          <Route path="/tenant" element={<TenantDashboard />} />
+          <Route path="/tenant/lease" element={<TenantLease />} />
+          <Route path="/tenant/pay" element={<TenantPayRent />} />
+          <Route path="/tenant/payments" element={<TenantPayments />} />
+          <Route path="/tenant/maintenance" element={<TenantMaintenance />} />
+          <Route path="/tenant/documents" element={<TenantDocuments />} />
+          <Route path="/tenant/profile" element={<TenantProfile />} />
+
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
