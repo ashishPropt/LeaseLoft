@@ -297,15 +297,29 @@ const SignUp = () => {
 
           <div className="space-y-2">
             <Label htmlFor="phone">Mobile phone</Label>
-            <Input
-              id="phone"
-              placeholder="+15558675310"
-              required
-              value={form.phone_e164}
-              onChange={(e) => set("phone_e164", e.target.value)}
-            />
+            <div className="flex gap-2">
+              <div className="flex h-10 items-center rounded-md border border-input bg-muted/50 px-3 text-sm text-muted-foreground">
+                🇺🇸/🇨🇦 +1
+              </div>
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel-national"
+                placeholder="(555) 867-5310"
+                required
+                value={form.phone_display}
+                onChange={(e) => set("phone_display", formatNanp(e.target.value))}
+                aria-invalid={form.phone_display.length > 0 && !phoneValid}
+              />
+            </div>
+            {form.phone_display.length > 0 && !phoneValid && (
+              <p className="text-xs text-destructive">
+                Enter a valid 10-digit US or Canada mobile number.
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
-              Used for SMS two-factor authentication. Standard SMS rates may apply. We'll send a verification code next.
+              US/Canada numbers only. Standard SMS rates may apply. We'll send a verification code next.
             </p>
           </div>
 
