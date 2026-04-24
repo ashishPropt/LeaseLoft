@@ -445,7 +445,7 @@ const SignUp = () => {
             className="w-full"
             disabled={loading || !emailValid || !phoneValid || !passwordStrong || !passwordsMatch || !agreed}
           >
-            {loading ? "Creating account…" : "Continue"}
+            {loading ? "Creating account…" : "Continue to phone verification"}
           </Button>
         </form>
       )}
