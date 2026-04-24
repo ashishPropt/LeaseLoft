@@ -1,14 +1,26 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, Check, X } from "lucide-react";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { supabase } from "@/integrations/supabase/client";
+import { getDeviceId } from "@/lib/device";
 import { toast } from "sonner";
 
-type Step = "code" | "details";
+type Step = "code" | "details" | "verify";
+
+const PW_RULES = [
+  { id: "len", label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+  { id: "upper", label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+  { id: "lower", label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
+  { id: "num", label: "One number", test: (p: string) => /\d/.test(p) },
+  { id: "sym", label: "One symbol (!@#$…)", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+];
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -16,18 +28,32 @@ const SignUp = () => {
   const [inviteCode, setInviteCode] = useState("");
   const [validating, setValidating] = useState(false);
   const [role, setRole] = useState<string>("");
+  const [prefilled, setPrefilled] = useState({ first_name: false, last_name: false, email: false });
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
     email: "",
     phone_e164: "",
     password: "",
+    confirm_password: "",
   });
+  const [agreed, setAgreed] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Verify step
+  const [otp, setOtp] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
 
   function set<K extends keyof typeof form>(k: K, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
   }
+
+  const passedRules = PW_RULES.filter((r) => r.test(form.password));
+  const passwordStrong = passedRules.length === PW_RULES.length;
+  const passwordsMatch = form.password.length > 0 && form.password === form.confirm_password;
 
   async function onValidateCode(e: React.FormEvent) {
     e.preventDefault();
@@ -50,16 +76,32 @@ const SignUp = () => {
       first_name: invite.first_name,
       last_name: invite.last_name,
     }));
+    setPrefilled({
+      first_name: !!invite.first_name,
+      last_name: !!invite.last_name,
+      email: !!invite.email,
+    });
     setInviteCode(code);
     setStep("details");
     toast.success("Invite verified. Complete your profile to continue.");
   }
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmitDetails(e: React.FormEvent) {
     e.preventDefault();
+    if (!passwordStrong) { toast.error("Password doesn't meet all requirements"); return; }
+    if (!passwordsMatch) { toast.error("Passwords don't match"); return; }
+    if (!agreed) { toast.error("Please agree to the Terms and Privacy Policy"); return; }
+
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("signup-with-invite", {
-      body: { ...form, invite_code: inviteCode },
+      body: {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        email: form.email,
+        phone_e164: form.phone_e164,
+        password: form.password,
+        invite_code: inviteCode,
+      },
     });
     if (error || (data && (data as { error?: string }).error)) {
       const msg = (data as { error?: string })?.error || error?.message || "Signup failed";
@@ -74,28 +116,64 @@ const SignUp = () => {
     if (signErr) { toast.error(signErr.message); setLoading(false); return; }
 
     const { error: sendErr } = await supabase.functions.invoke("send-sms-otp");
-    if (sendErr) { toast.error("Could not send verification code"); setLoading(false); return; }
+    setLoading(false);
+    if (sendErr) { toast.error("Could not send verification code"); return; }
 
-    toast.success("Account created. Verify your phone to continue.");
-    navigate("/verify-2fa");
+    toast.success("Verification code sent to your phone.");
+    setStep("verify");
   }
+
+  async function onVerifyOtp() {
+    if (otp.length !== 6) return;
+    setVerifying(true);
+    const { data, error } = await supabase.functions.invoke("verify-sms-otp", {
+      body: { code: otp, device_id: getDeviceId() },
+    });
+    setVerifying(false);
+    if (error || (data && (data as { error?: string }).error)) {
+      toast.error((data as { error?: string })?.error || error?.message || "Verification failed");
+      return;
+    }
+    toast.success("Account created");
+    navigate("/");
+  }
+
+  async function onResendOtp() {
+    setResending(true);
+    const { error } = await supabase.functions.invoke("send-sms-otp");
+    setResending(false);
+    if (error) toast.error(error.message);
+    else toast.success("New code sent");
+  }
+
+  const phoneTail = form.phone_e164.slice(-4);
+  const phoneMasked = form.phone_e164
+    ? `${form.phone_e164.slice(0, form.phone_e164.length - 4).replace(/\d/g, "•")}${phoneTail}`
+    : "";
+
+  const subtitle =
+    step === "code"
+      ? "LeaseLoft is invite-only. Enter the code you received to begin."
+      : step === "details"
+      ? "Invite verified. Complete your profile to create your account."
+      : `We sent a 6-digit code to ${phoneMasked}. Enter it below to activate two-factor authentication and finish creating your account.`;
+
+  const title = step === "verify" ? "Verify your phone" : "Join LeaseLoft";
 
   return (
     <AuthLayout
-      title="Join LeaseLoft"
-      subtitle={
-        step === "code"
-          ? "LeaseLoft is invite-only. Enter the code you received to begin."
-          : "Invite verified. Complete your profile to create your account."
-      }
+      title={title}
+      subtitle={subtitle}
       footer={
-        <>
-          Already have an account?{" "}
-          <Link to="/signin" className="text-primary font-medium hover:underline">Sign in</Link>
-        </>
+        step === "verify" ? null : (
+          <>
+            Already have an account?{" "}
+            <Link to="/signin" className="text-primary font-medium hover:underline">Sign in</Link>
+          </>
+        )
       }
     >
-      {step === "code" ? (
+      {step === "code" && (
         <form onSubmit={onValidateCode} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="invite">Invite code</Label>
@@ -116,8 +194,10 @@ const SignUp = () => {
             {validating ? "Verifying…" : "Verify code"}
           </Button>
         </form>
-      ) : (
-        <form onSubmit={onSubmit} className="space-y-4">
+      )}
+
+      {step === "details" && (
+        <form onSubmit={onSubmitDetails} className="space-y-4">
           <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
             <div className="text-xs">
               <div className="text-muted-foreground">Invite code</div>
@@ -136,22 +216,58 @@ const SignUp = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="first">First name</Label>
-              <Input id="first" required value={form.first_name} onChange={(e) => set("first_name", e.target.value)} />
+          <div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="first">First name</Label>
+                <Input
+                  id="first"
+                  required
+                  value={form.first_name}
+                  onChange={(e) => set("first_name", e.target.value)}
+                  readOnly={prefilled.first_name}
+                  className={prefilled.first_name ? "bg-muted/50 cursor-not-allowed" : ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last">Last name</Label>
+                <Input
+                  id="last"
+                  required
+                  value={form.last_name}
+                  onChange={(e) => set("last_name", e.target.value)}
+                  readOnly={prefilled.last_name}
+                  className={prefilled.last_name ? "bg-muted/50 cursor-not-allowed" : ""}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="last">Last name</Label>
-              <Input id="last" required value={form.last_name} onChange={(e) => set("last_name", e.target.value)} />
-            </div>
+            {(prefilled.first_name || prefilled.last_name) && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Your name was pre-filled from the invite and can't be changed. Contact whoever invited you if anything is incorrect.
+              </p>
+            )}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" required value={form.email} onChange={(e) => set("email", e.target.value)} />
+            <Input
+              id="email"
+              type="email"
+              required
+              value={form.email}
+              onChange={(e) => set("email", e.target.value)}
+              readOnly={prefilled.email}
+              className={prefilled.email ? "bg-muted/50 cursor-not-allowed" : ""}
+            />
+            {prefilled.email && (
+              <p className="text-xs text-muted-foreground">
+                This invite was sent to a specific email and can't be changed.
+              </p>
+            )}
           </div>
+
           <div className="space-y-2">
-            <Label htmlFor="phone">Mobile phone (E.164)</Label>
+            <Label htmlFor="phone">Mobile phone</Label>
             <Input
               id="phone"
               placeholder="+15558675310"
@@ -159,23 +275,144 @@ const SignUp = () => {
               value={form.phone_e164}
               onChange={(e) => set("phone_e164", e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Used for SMS two-factor authentication.</p>
+            <p className="text-xs text-muted-foreground">
+              Used for SMS two-factor authentication. Standard SMS rates may apply. We'll send a verification code next.
+            </p>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              minLength={8}
-              value={form.password}
-              onChange={(e) => set("password", e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPw ? "text" : "password"}
+                required
+                value={form.password}
+                onChange={(e) => set("password", e.target.value)}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                aria-label={showPw ? "Hide password" : "Show password"}
+                tabIndex={-1}
+              >
+                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {form.password.length > 0 && (
+              <ul className="mt-2 space-y-1 text-xs">
+                {PW_RULES.map((r) => {
+                  const ok = r.test(form.password);
+                  return (
+                    <li key={r.id} className={`flex items-center gap-2 ${ok ? "text-primary" : "text-muted-foreground"}`}>
+                      {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                      {r.label}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating account…" : "Create account"}
+
+          <div className="space-y-2">
+            <Label htmlFor="confirm">Confirm password</Label>
+            <div className="relative">
+              <Input
+                id="confirm"
+                type={showConfirm ? "text" : "password"}
+                required
+                value={form.confirm_password}
+                onChange={(e) => set("confirm_password", e.target.value)}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                aria-label={showConfirm ? "Hide password" : "Show password"}
+                tabIndex={-1}
+              >
+                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {form.confirm_password.length > 0 && !passwordsMatch && (
+              <p className="text-xs text-destructive">Passwords don't match.</p>
+            )}
+          </div>
+
+          <label
+            htmlFor="terms"
+            className="flex items-start gap-3 rounded-md border bg-card p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+          >
+            <Checkbox
+              id="terms"
+              checked={agreed}
+              onCheckedChange={(v) => setAgreed(v === true)}
+              className="mt-0.5"
+            />
+            <div className="text-sm leading-tight">
+              <div className="font-medium">
+                I agree to the{" "}
+                <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+                {" "}and{" "}
+                <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                I consent to receive SMS codes for two-factor authentication at the number above.
+              </div>
+            </div>
+          </label>
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading || !passwordStrong || !passwordsMatch || !agreed}
+          >
+            {loading ? "Creating account…" : "Continue"}
           </Button>
         </form>
+      )}
+
+      {step === "verify" && (
+        <div className="space-y-6">
+          <div className="flex justify-center">
+            <InputOTP maxLength={6} value={otp} onChange={setOtp} autoFocus>
+              <InputOTPGroup>
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <InputOTPSlot key={i} index={i} className="w-12 h-12 text-lg" />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+          <div className="text-center text-sm text-muted-foreground">
+            Didn't receive it?{" "}
+            <button
+              onClick={onResendOtp}
+              disabled={resending}
+              className="text-foreground font-medium underline underline-offset-2 hover:text-primary disabled:opacity-50"
+            >
+              {resending ? "Sending…" : "Resend code"}
+            </button>
+          </div>
+          <Button
+            onClick={onVerifyOtp}
+            className="w-full"
+            disabled={verifying || otp.length !== 6}
+          >
+            {verifying ? "Verifying…" : "Verify & create account"}
+          </Button>
+          <div className="border-t pt-4 text-center text-sm text-muted-foreground">
+            Wrong number?{" "}
+            <button
+              onClick={() => setStep("details")}
+              className="text-foreground font-medium underline underline-offset-2 hover:text-primary"
+            >
+              Edit registration
+            </button>
+          </div>
+        </div>
       )}
     </AuthLayout>
   );
