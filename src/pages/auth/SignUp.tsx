@@ -91,11 +91,29 @@ const SignUp = () => {
       body: { invite_code: code },
     });
     setValidating(false);
-    if (error || (data && (data as { error?: string }).error)) {
-      const msg = (data as { error?: string })?.error || error?.message || "Could not validate code";
-      toast.error(msg);
+
+    // Try to extract a friendly error message from the function response body
+    let errMsg: string | null = null;
+    if (error) {
+      const ctx = (error as { context?: Response }).context;
+      if (ctx && typeof ctx.json === "function") {
+        try {
+          const body = await ctx.json();
+          errMsg = body?.error || null;
+        } catch {
+          /* ignore */
+        }
+      }
+      errMsg = errMsg || error.message || "Could not validate code";
+    } else if (data && (data as { error?: string }).error) {
+      errMsg = (data as { error?: string }).error!;
+    }
+
+    if (errMsg) {
+      toast.error(errMsg);
       return;
     }
+
     const invite = (data as { invite: { role: string; email: string; first_name: string; last_name: string } }).invite;
     setRole(invite.role);
     setForm((f) => ({
