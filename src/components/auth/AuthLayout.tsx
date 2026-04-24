@@ -25,7 +25,7 @@ export const AuthLayout = ({ title, subtitle, children, footer }: Props) => {
 
       {/* Right: brand panel */}
       <div className="hidden lg:flex bg-gradient-dark text-white p-12 flex-col justify-between">
-        <Logo size="md" variant="dark" />
+        <Logo size="md" />
         <div className="max-w-md">
           <h2 className="text-3xl font-medium leading-tight">
             Property management,<br />
@@ -36,7 +36,7 @@ export const AuthLayout = ({ title, subtitle, children, footer }: Props) => {
             about their data.
           </p>
         </div>
-        <div className="text-xs text-primary-light/60">© {new Date().getFullYear()} LeaseLoft</div>
+        <div className="text-xs text-primary-light/60">© {new Date().getFullYear()} LeaseLogix</div>
       </div>
     </div>
   );
