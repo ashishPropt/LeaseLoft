@@ -25,12 +25,12 @@ Deno.serve(async (req) => {
       .eq("code", code)
       .maybeSingle();
 
-    if (error) return json({ error: "Database error" }, 500);
-    if (!invite) return json({ error: "This invite code is not valid." }, 400);
-    if (!invite.role) return json({ error: "Invite has no role assigned. Please contact support." }, 400);
-    if (invite.used_count >= invite.max_uses) return json({ error: "This invite code has already been used." }, 400);
+    if (error) return json({ error: "We couldn't verify your code right now. Please try again." });
+    if (!invite) return json({ error: "This invite code is not valid." });
+    if (!invite.role) return json({ error: "Invite has no role assigned. Please contact support." });
+    if (invite.used_count >= invite.max_uses) return json({ error: "This invite code has already been used." });
     if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-      return json({ error: "This invite code has expired." }, 400);
+      return json({ error: "This invite code has expired." });
     }
 
     return json({
