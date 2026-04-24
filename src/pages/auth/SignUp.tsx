@@ -127,7 +127,7 @@ const SignUp = () => {
         first_name: form.first_name,
         last_name: form.last_name,
         email: form.email,
-        phone_e164: form.phone_e164,
+        phone_e164: phoneE164,
         password: form.password,
         invite_code: inviteCode,
       },
