@@ -22,20 +22,16 @@ const SignIn = () => {
       toast.error(error.message);
       return;
     }
-    // Trigger SMS OTP send
-    const { error: sendErr } = await supabase.functions.invoke("send-sms-otp");
-    if (sendErr) {
-      toast.error("Could not send verification code");
-      return;
-    }
-    toast.success("Verification code sent");
-    navigate("/verify-2fa");
+    // 2FA temporarily disabled — keep send/verify edge functions and Verify2FA page for later re-enable.
+    // To re-enable: restore the OTP send + navigate("/verify-2fa") below, and switch RequireAuth back to enforcing mfa_sessions.
+    toast.success("Signed in");
+    navigate("/");
   }
 
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in with your email and password. We'll send a verification code to your phone."
+      subtitle="Sign in with your email and password."
       footer={
         <>
           Have an invite code?{" "}
@@ -58,7 +54,7 @@ const SignIn = () => {
           <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Signing in…" : "Continue to phone verification"}
+          {loading ? "Signing in…" : "Sign in"}
         </Button>
       </form>
     </AuthLayout>
