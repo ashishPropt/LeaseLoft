@@ -50,7 +50,7 @@ export const Logo = ({ size = "md", role, className }: LogoProps) => {
       <LogoMark size={s.mark} />
       <div className="leading-tight">
         <div className={cn("font-semibold tracking-tight text-foreground", s.text)}>
-          LeaseLogix
+          LeaseLoft
         </div>
         {role && (
           <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">

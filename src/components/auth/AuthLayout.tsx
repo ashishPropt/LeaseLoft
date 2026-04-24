@@ -36,7 +36,7 @@ export const AuthLayout = ({ title, subtitle, children, footer }: Props) => {
             about their data.
           </p>
         </div>
-        <div className="text-xs text-primary-light/60">© {new Date().getFullYear()} LeaseLogix</div>
+        <div className="text-xs text-primary-light/60">© {new Date().getFullYear()} LeaseLoft</div>
       </div>
     </div>
   );
