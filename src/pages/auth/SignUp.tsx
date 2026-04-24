@@ -238,7 +238,23 @@ const SignUp = () => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => { setStep("code"); setRole(""); }}
+                onClick={() => {
+                  setStep("code");
+                  setRole("");
+                  setInviteCode("");
+                  setForm({
+                    first_name: "",
+                    last_name: "",
+                    email: "",
+                    phone_display: "",
+                    password: "",
+                    confirm_password: "",
+                  });
+                  setPrefilled({ first_name: false, last_name: false, email: false });
+                  setAgreed(false);
+                  setShowPw(false);
+                  setShowConfirm(false);
+                }}
               >
                 Change
               </Button>
