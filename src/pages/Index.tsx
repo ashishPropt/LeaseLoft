@@ -60,11 +60,11 @@ const Index = () => {
       <main>
         <section className="container py-20 lg:py-28">
           <div className="max-w-3xl">
-            //
+            /*
             <div className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-primary bg-primary-tint px-3 py-1.5 rounded-full">
-              //
-              <ShieldCheck className="w-3.5 h-3.5" /> Invite-only · SMS 2FA //
+              <ShieldCheck className="w-3.5 h-3.5" /> Invite-only · SMS 2FA
             </div>
+            */
             <h1 className="text-5xl lg:text-6xl font-medium tracking-tight mt-6 text-foreground leading-[1.05]">
               Property management, <span className="text-primary">elevated.</span>
             </h1>
