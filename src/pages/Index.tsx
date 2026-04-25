@@ -40,7 +40,9 @@ const Index = () => {
           <Logo size="sm" />
           <nav className="flex items-center gap-3">
             {hasSession ? (
-              <Button variant="ghost" size="sm" onClick={signOut}>Sign out</Button>
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                Sign out
+              </Button>
             ) : (
               <>
                 <Button variant="ghost" size="sm" asChild>
@@ -58,12 +60,13 @@ const Index = () => {
       <main>
         <section className="container py-20 lg:py-28">
           <div className="max-w-3xl">
+            //
             <div className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-primary bg-primary-tint px-3 py-1.5 rounded-full">
-              <ShieldCheck className="w-3.5 h-3.5" /> Invite-only · SMS 2FA
+              //
+              <ShieldCheck className="w-3.5 h-3.5" /> Invite-only · SMS 2FA //
             </div>
             <h1 className="text-5xl lg:text-6xl font-medium tracking-tight mt-6 text-foreground leading-[1.05]">
-              Property management,{" "}
-              <span className="text-primary">elevated.</span>
+              Property management, <span className="text-primary">elevated.</span>
             </h1>
             <p className="text-lg text-muted-foreground mt-6 leading-relaxed max-w-2xl">
               LeaseLoft brings landlords and tenants together in one secure workspace. Leases, payments, maintenance —
@@ -85,9 +88,21 @@ const Index = () => {
         <section className="container pb-24">
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { icon: KeyRound, title: "Invite-only", body: "New accounts require a single-use invite code from an admin or landlord." },
-              { icon: ShieldCheck, title: "SMS 2FA on every login", body: "Two-factor authentication via SMS is required to access your data." },
-              { icon: Building2, title: "Built for both sides", body: "Tenants pay rent and report issues. Landlords manage properties, leases, and payments." },
+              {
+                icon: KeyRound,
+                title: "Invite-only",
+                body: "New accounts require a single-use invite code from an admin or landlord.",
+              },
+              {
+                icon: ShieldCheck,
+                title: "SMS 2FA on every login",
+                body: "Two-factor authentication via SMS is required to access your data.",
+              },
+              {
+                icon: Building2,
+                title: "Built for both sides",
+                body: "Tenants pay rent and report issues. Landlords manage properties, leases, and payments.",
+              },
             ].map(({ icon: Icon, title, body }) => (
               <div key={title} className="rounded-xl border border-border bg-card p-6 shadow-card">
                 <div className="w-10 h-10 rounded-lg bg-primary-tint text-primary grid place-items-center">
