@@ -64,8 +64,7 @@ const Index = () => {
               Property management, <span className="text-primary">elevated.</span>
             </h1>
             <p className="text-lg text-muted-foreground mt-6 leading-relaxed max-w-2xl">
-              LeaseLoft brings landlords and tenants together in one secure workspace. Leases, payments, maintenance —
-              all behind two-factor authentication, every sign-in.
+              LeaseLoft brings landlords and tenants together in one secure workspace - Leases, payments & maintenance.
             </p>
             <div className="flex flex-wrap gap-3 mt-8">
               <Button size="lg" asChild>
