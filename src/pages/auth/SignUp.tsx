@@ -153,14 +153,11 @@ const SignUp = () => {
       email: form.email,
       password: form.password,
     });
-    if (signErr) { toast.error(signErr.message); setLoading(false); return; }
-
-    const { error: sendErr } = await supabase.functions.invoke("send-sms-otp");
     setLoading(false);
-    if (sendErr) { toast.error("Could not send verification code"); return; }
+    if (signErr) { toast.error(signErr.message); return; }
 
-    toast.success("Verification code sent to your phone.");
-    setStep("verify");
+    toast.success("Account created");
+    navigate("/");
   }
 
   async function onVerifyOtp() {
