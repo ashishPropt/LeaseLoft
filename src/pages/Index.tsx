@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutCompletely } from "@/lib/signOut";
 import { ArrowRight, ShieldCheck, KeyRound, Building2 } from "lucide-react";
 
 const Index = () => {
@@ -25,12 +26,7 @@ const Index = () => {
   }, [navigate]);
 
   async function signOut() {
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.error("Sign out error", err);
-    }
-    window.location.href = "/signin";
+    await signOutCompletely("/signin");
   }
 
   return (
