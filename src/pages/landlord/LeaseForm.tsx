@@ -38,7 +38,7 @@ export default function LandlordLeaseForm() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [rent, setRent] = useState<string>("");
-  const [status, setStatus] = useState<"draft" | "active" | "ended">("active");
+  const [status, setStatus] = useState<"draft" | "active" | "ended" | "terminated">("active");
 
   useEffect(() => {
     (async () => {
