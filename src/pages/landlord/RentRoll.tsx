@@ -101,13 +101,14 @@ export default function LandlordRentRoll() {
               <th className="text-left font-medium px-6 py-4">Tenant</th>
               <th className="text-left font-medium px-6 py-4">Status</th>
               <th className="text-right font-medium px-6 py-4">Rent</th>
+              <th className="px-6 py-4"></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">No units yet.</td></tr>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">No units yet.</td></tr>
             ) : rows.map(r => (
               <tr key={r.unitId} className="border-t border-border">
                 <td className="px-6 py-4 font-medium text-foreground">{r.property}</td>
@@ -121,6 +122,13 @@ export default function LandlordRentRoll() {
                 </td>
                 <td className="px-6 py-4 text-right font-mono font-medium text-foreground">
                   {money(r.leaseRent ?? r.marketRent)}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  {r.leaseId ? (
+                    <Link to={`/landlord/leases/${r.leaseId}`} className="text-primary text-xs hover:underline">View lease</Link>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </td>
               </tr>
             ))}
