@@ -14,10 +14,10 @@ const Index = () => {
       setHasSession(!!session);
       if (!session) return;
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id);
-      const role = roles?.[0]?.role;
-      if (role === "landlord") navigate("/landlord", { replace: true });
-      else if (role === "admin") navigate("/admin", { replace: true });
-      else if (role === "tenant") navigate("/tenant", { replace: true });
+      const all = (roles ?? []).map((r: any) => r.role);
+      if (all.includes("admin")) navigate("/admin", { replace: true });
+      else if (all.includes("landlord")) navigate("/landlord", { replace: true });
+      else if (all.includes("tenant")) navigate("/tenant", { replace: true });
     }
     supabase.auth.getSession().then(({ data }) => check(data.session));
     const { data: l } = supabase.auth.onAuthStateChange((_, s) => check(s));
