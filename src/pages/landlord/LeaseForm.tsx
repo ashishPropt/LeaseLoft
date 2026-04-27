@@ -60,16 +60,40 @@ export default function LandlordLeaseForm() {
         setUnits(unitsList);
       }
 
-      // Tenants pool = anyone with a lease under this landlord
-      const { data: existing } = await supabase.from("leases").select("tenant_id").eq("landlord_id", userId);
-      const tenantIds = Array.from(new Set((existing ?? []).map(l => l.tenant_id)));
-      if (tenantIds.length) {
-        const { data: profs } = await supabase.from("profiles").select("id,full_name,first_name,last_name,email").in("id", tenantIds);
+      // Build tenant pool:
+      //  - tenants who redeemed an invite this landlord created (=> active account)
+      //  - plus tenants already associated with any of this landlord's leases
+      // Then exclude any tenant who currently has an ACTIVE lease under this landlord.
+      const [{ data: redeemed }, { data: existing }] = await Promise.all([
+        supabase.from("invite_codes").select("used_by").eq("created_by", userId).eq("role", "tenant").not("used_by", "is", null),
+        supabase.from("leases").select("tenant_id,status").eq("landlord_id", userId),
+      ]);
+
+      const activeTenantIds = new Set((existing ?? []).filter(l => l.status === "active").map(l => l.tenant_id));
+      const candidateIds = new Set<string>();
+      (redeemed ?? []).forEach((r: any) => r.used_by && candidateIds.add(r.used_by));
+      (existing ?? []).forEach(l => candidateIds.add(l.tenant_id));
+
+      // Exclude tenants who already have an active lease (the user only wants tenants without active leases).
+      // But always keep the currently-edited lease's tenant available.
+      let editingTenantId: string | null = null;
+      if (isEdit && id) {
+        const { data: leaseRow } = await supabase.from("leases").select("tenant_id").eq("id", id).maybeSingle();
+        editingTenantId = leaseRow?.tenant_id ?? null;
+        if (editingTenantId) candidateIds.add(editingTenantId);
+      }
+
+      const eligibleIds = Array.from(candidateIds).filter(tid => tid === editingTenantId || !activeTenantIds.has(tid));
+
+      if (eligibleIds.length) {
+        const { data: profs } = await supabase.from("profiles").select("id,full_name,first_name,last_name,email").in("id", eligibleIds);
         setTenants(((profs ?? []) as any[]).map(p => ({
           id: p.id,
           email: p.email,
           name: p.full_name || `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() || p.email,
-        })));
+        })).sort((a, b) => a.name.localeCompare(b.name)));
+      } else {
+        setTenants([]);
       }
 
       if (isEdit && id) {
@@ -223,7 +247,7 @@ export default function LandlordLeaseForm() {
               </SelectContent>
             </Select>
             <p className="mt-1 text-xs text-muted-foreground">
-              Only tenants with a lease under you appear here. Need a new one?{" "}
+              Shows your tenants with an active account who don't currently have an active lease. Need a new one?{" "}
               <Link to="/landlord/invite" className="text-primary hover:underline">Invite tenant</Link>.
             </p>
           </div>
