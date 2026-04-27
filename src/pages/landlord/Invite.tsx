@@ -44,6 +44,7 @@ export default function LandlordInvite() {
       .from("invite_codes")
       .select("code,email,first_name,last_name,property,used_count,max_uses,expires_at,created_at")
       .eq("role", "tenant")
+      .eq("created_by", s.session.user.id)
       .order("created_at", { ascending: false });
     setInvites(data ?? []);
     setLoading(false);
