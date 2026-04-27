@@ -27,19 +27,22 @@ const SignIn = () => {
       let dest = "/";
       if (userId) {
         try {
-          const rolesPromise = supabase.from("user_roles").select("role").eq("user_id", userId);
-          const timeout = new Promise<{ data: null }>((resolve) => setTimeout(() => resolve({ data: null }), 4000));
-          const result: any = await Promise.race([rolesPromise, timeout]);
-          const role = result?.data?.[0]?.role;
-          if (role === "landlord") dest = "/landlord";
-          else if (role === "admin") dest = "/admin";
-          else if (role === "tenant") dest = "/tenant";
+          const { data: roles, error: rolesErr } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", userId);
+          if (rolesErr) console.error("Role lookup error", rolesErr);
+          const allRoles = (roles ?? []).map((r: any) => r.role);
+          // Priority: admin > landlord > tenant
+          if (allRoles.includes("admin")) dest = "/admin";
+          else if (allRoles.includes("landlord")) dest = "/landlord";
+          else if (allRoles.includes("tenant")) dest = "/tenant";
         } catch (err) {
           console.error("Role lookup failed", err);
         }
       }
       toast.success("Signed in");
-      navigate(dest, { replace: true });
+      window.location.href = dest;
     } finally {
       setLoading(false);
     }
