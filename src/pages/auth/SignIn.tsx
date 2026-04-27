@@ -24,23 +24,34 @@ const SignIn = () => {
       }
       // 2FA temporarily disabled — keep send/verify edge functions and Verify2FA page for later re-enable.
       const userId = data.user?.id;
-      let dest = "/";
+      let dest: string | null = null;
+
       if (userId) {
-        try {
+        // Retry role lookup up to 3 times — session propagation to PostgREST can lag briefly after sign-in.
+        for (let attempt = 0; attempt < 3 && !dest; attempt++) {
+          if (attempt > 0) await new Promise((r) => setTimeout(r, 250));
           const { data: roles, error: rolesErr } = await supabase
             .from("user_roles")
             .select("role")
             .eq("user_id", userId);
-          if (rolesErr) console.error("Role lookup error", rolesErr);
+          if (rolesErr) {
+            console.error("Role lookup error", rolesErr);
+            continue;
+          }
           const allRoles = (roles ?? []).map((r: any) => r.role);
-          // Priority: admin > landlord > tenant
           if (allRoles.includes("admin")) dest = "/admin";
           else if (allRoles.includes("landlord")) dest = "/landlord";
           else if (allRoles.includes("tenant")) dest = "/tenant";
-        } catch (err) {
-          console.error("Role lookup failed", err);
         }
       }
+
+      if (!dest) {
+        console.error("No role found for user after sign-in", userId);
+        toast.error("Your account has no role assigned. Contact an administrator.");
+        await supabase.auth.signOut();
+        return;
+      }
+
       toast.success("Signed in");
       window.location.href = dest;
     } finally {
