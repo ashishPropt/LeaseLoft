@@ -1,6 +1,6 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { LogOut } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { signOutCompletely } from "@/lib/signOut";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
@@ -18,15 +18,8 @@ interface AppSidebarProps {
 }
 
 export const AppSidebar = ({ role, items, user }: AppSidebarProps) => {
-  const navigate = useNavigate();
-
   async function signOut() {
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.error("Sign out error", err);
-    }
-    window.location.href = "/signin";
+    await signOutCompletely("/signin");
   }
 
   return (
