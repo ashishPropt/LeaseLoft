@@ -53,7 +53,7 @@ const SignIn = () => {
       }
 
       toast.success("Signed in");
-      window.location.href = dest;
+      navigate(dest, { replace: true });
     } finally {
       setLoading(false);
     }
