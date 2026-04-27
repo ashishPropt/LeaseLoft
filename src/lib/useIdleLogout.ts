@@ -36,10 +36,8 @@ export function useIdleLogout(idleMs: number = DEFAULT_IDLE_MS) {
       if (e.key === STORAGE_KEY) schedule();
     };
 
-    const events: (keyof WindowEventMap)[] = [
-      "mousemove", "mousedown", "keydown", "touchstart", "scroll", "click", "visibilitychange",
-    ];
-    events.forEach((ev) => window.addEventListener(ev, markActivity, { passive: true }));
+    const events = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "click", "visibilitychange"];
+    events.forEach((ev) => window.addEventListener(ev, markActivity, { passive: true } as AddEventListenerOptions));
     window.addEventListener("storage", onStorage);
 
     markActivity();
