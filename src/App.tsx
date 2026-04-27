@@ -16,6 +16,7 @@ import LandlordRentRoll from "./pages/landlord/RentRoll.tsx";
 import LandlordMaintenance from "./pages/landlord/Maintenance.tsx";
 import LandlordInvite from "./pages/landlord/Invite.tsx";
 import LandlordLeaseDetail from "./pages/landlord/LeaseDetail.tsx";
+import LandlordLeaseForm from "./pages/landlord/LeaseForm.tsx";
 import AdminUsers from "./pages/admin/Users.tsx";
 import AdminInvites from "./pages/admin/Invites.tsx";
 import AdminProperties from "./pages/admin/Properties.tsx";
@@ -48,7 +49,9 @@ const App = () => (
           <Route path="/landlord/rent-roll" element={<LandlordRentRoll />} />
           <Route path="/landlord/maintenance" element={<LandlordMaintenance />} />
           <Route path="/landlord/invite" element={<LandlordInvite />} />
+          <Route path="/landlord/leases/new" element={<LandlordLeaseForm />} />
           <Route path="/landlord/leases/:id" element={<LandlordLeaseDetail />} />
+          <Route path="/landlord/leases/:id/edit" element={<LandlordLeaseForm />} />
 
           <Route path="/admin" element={<AdminUsers />} />
           <Route path="/admin/invites" element={<AdminInvites />} />
