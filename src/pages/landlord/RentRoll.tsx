@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Upload } from "lucide-react";
+import { Upload, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LandlordLayout } from "@/components/layout/LandlordLayout";
 import { StatusPill } from "@/components/layout/StatusPill";
@@ -88,7 +88,10 @@ export default function LandlordRentRoll() {
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">Rent roll</h1>
           <p className="text-muted-foreground mt-1.5 text-sm">{occupied} of {rows.length} units occupied · {money(totalExpected)} monthly</p>
         </div>
-        <Button variant="outline" onClick={exportCsv}><Upload className="w-4 h-4 mr-2" />Export CSV</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportCsv}><Upload className="w-4 h-4 mr-2" />Export CSV</Button>
+          <Link to="/landlord/leases/new"><Button><Plus className="w-4 h-4 mr-2" />New lease</Button></Link>
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card mt-6 overflow-x-auto">
@@ -125,9 +128,12 @@ export default function LandlordRentRoll() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   {r.leaseId ? (
-                    <Link to={`/landlord/leases/${r.leaseId}`} className="text-primary text-xs hover:underline">View lease</Link>
+                    <div className="flex items-center justify-end gap-3">
+                      <Link to={`/landlord/leases/${r.leaseId}`} className="text-primary text-xs hover:underline">View</Link>
+                      <Link to={`/landlord/leases/${r.leaseId}/edit`} className="text-primary text-xs hover:underline">Edit</Link>
+                    </div>
                   ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
+                    <Link to={`/landlord/leases/new?unit_id=${r.unitId}`} className="text-primary text-xs hover:underline">New lease</Link>
                   )}
                 </td>
               </tr>

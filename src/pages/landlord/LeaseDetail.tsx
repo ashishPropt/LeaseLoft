@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, User, Home, Calendar, DollarSign } from "lucide-react";
+import { ArrowLeft, FileText, User, Home, Calendar, DollarSign, Pencil, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LandlordLayout } from "@/components/layout/LandlordLayout";
 import { StatusPill } from "@/components/layout/StatusPill";
@@ -103,8 +103,14 @@ export default function LandlordLeaseDetail() {
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">Lease details</h1>
           <p className="text-muted-foreground mt-1.5 text-sm">{property?.name ?? "—"} · {unit?.label ?? "—"} · {tenantName}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <StatusPill tone={tone}>{lease.status[0].toUpperCase() + lease.status.slice(1)}</StatusPill>
+          <Button size="sm" variant="outline" onClick={() => navigate(`/landlord/leases/${lease.id}/edit`)}>
+            <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => navigate(`/landlord/leases/new?unit_id=${lease.unit_id}&tenant_id=${lease.tenant_id}`)}>
+            <Plus className="w-3.5 h-3.5 mr-1.5" /> New lease
+          </Button>
           {lease.status !== "active" && (
             <Button size="sm" onClick={() => setStatus("active")}>Mark active</Button>
           )}
