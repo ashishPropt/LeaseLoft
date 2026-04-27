@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LandlordLayout } from "@/components/layout/LandlordLayout";
@@ -15,6 +16,7 @@ interface Row {
   marketRent: number;
   tenant: string | null;
   leaseRent: number | null;
+  leaseId: string | null;
   status: "occupied" | "vacant";
 }
 
@@ -58,6 +60,7 @@ export default function LandlordRentRoll() {
           marketRent: Number(u.rent_amount ?? 0),
           tenant: lease ? (tenantById.get(lease.tenant_id) ?? "Tenant") : null,
           leaseRent: lease ? Number(lease.rent_amount) : null,
+          leaseId: lease ? lease.id : null,
           status: (lease ? "occupied" : "vacant") as "occupied" | "vacant",
         };
       }).sort((a, b) => a.property.localeCompare(b.property) || a.unit.localeCompare(b.unit)));
