@@ -247,7 +247,7 @@ export default function LandlordLeaseForm() {
               </SelectContent>
             </Select>
             <p className="mt-1 text-xs text-muted-foreground">
-              Only tenants with a lease under you appear here. Need a new one?{" "}
+              Shows your tenants with an active account who don't currently have an active lease. Need a new one?{" "}
               <Link to="/landlord/invite" className="text-primary hover:underline">Invite tenant</Link>.
             </p>
           </div>
