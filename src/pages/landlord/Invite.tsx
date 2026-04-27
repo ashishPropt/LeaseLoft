@@ -44,6 +44,7 @@ export default function LandlordInvite() {
       .from("invite_codes")
       .select("code,email,first_name,last_name,property,used_count,max_uses,expires_at,created_at")
       .eq("role", "tenant")
+      .eq("created_by", s.session.user.id)
       .order("created_at", { ascending: false });
     setInvites(data ?? []);
     setLoading(false);
@@ -57,6 +58,8 @@ export default function LandlordInvite() {
     }
     setCreating(true);
     const code = makeCode();
+    const { data: s } = await supabase.auth.getSession();
+    if (!s.session) { setCreating(false); return; }
     const { error } = await supabase.from("invite_codes").insert({
       code,
       role: "tenant",
@@ -65,6 +68,7 @@ export default function LandlordInvite() {
       last_name: form.last_name || null,
       property: form.property || null,
       note: form.note || null,
+      created_by: s.session.user.id,
       created_by_name: creatorName,
       max_uses: 1,
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
