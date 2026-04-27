@@ -33,6 +33,7 @@ export default function LandlordLeaseForm() {
   const [properties, setProperties] = useState<PropOpt[]>([]);
   const [tenants, setTenants] = useState<TenantOpt[]>([]);
 
+  const [propertyId, setPropertyId] = useState<string>("");
   const [unitId, setUnitId] = useState<string>(params.get("unit_id") ?? "");
   const [tenantId, setTenantId] = useState<string>(params.get("tenant_id") ?? "");
   const [startDate, setStartDate] = useState<string>("");
@@ -48,15 +49,18 @@ export default function LandlordLeaseForm() {
       setUid(userId);
 
       const { data: props } = await supabase.from("properties").select("id,name").eq("owner_id", userId);
-      setProperties((props ?? []) as PropOpt[]);
-      const propIds = (props ?? []).map(p => p.id);
+      const propsList = (props ?? []) as PropOpt[];
+      setProperties(propsList);
+      const propIds = propsList.map(p => p.id);
 
+      let unitsList: UnitOpt[] = [];
       if (propIds.length) {
         const { data: u } = await supabase.from("units").select("id,label,property_id,rent_amount").in("property_id", propIds);
-        setUnits((u ?? []) as UnitOpt[]);
+        unitsList = (u ?? []) as UnitOpt[];
+        setUnits(unitsList);
       }
 
-      // Tenants = anyone with a lease under this landlord (existing tenants pool)
+      // Tenants pool = anyone with a lease under this landlord
       const { data: existing } = await supabase.from("leases").select("tenant_id").eq("landlord_id", userId);
       const tenantIds = Array.from(new Set((existing ?? []).map(l => l.tenant_id)));
       if (tenantIds.length) {
@@ -77,20 +81,42 @@ export default function LandlordLeaseForm() {
           setEndDate(lease.end_date);
           setRent(String(lease.rent_amount));
           setStatus(lease.status);
+          const u = unitsList.find(x => x.id === lease.unit_id);
+          if (u) setPropertyId(u.property_id);
+        }
+      } else {
+        // Prefill property from unit_id query param
+        const preUnit = params.get("unit_id");
+        if (preUnit) {
+          const u = unitsList.find(x => x.id === preUnit);
+          if (u) setPropertyId(u.property_id);
         }
       }
       setLoading(false);
     })();
-  }, [id, isEdit, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isEdit]);
 
-  const unitsByProp = useMemo(() => {
-    const m = new Map<string, UnitOpt[]>();
-    for (const u of units) {
-      const arr = m.get(u.property_id) ?? [];
-      arr.push(u); m.set(u.property_id, arr);
+  const filteredUnits = useMemo(
+    () => (propertyId ? units.filter(u => u.property_id === propertyId) : []),
+    [units, propertyId]
+  );
+
+  function onPropertyChange(v: string) {
+    setPropertyId(v);
+    // Clear unit if it doesn't belong to the new property
+    const stillValid = units.some(u => u.id === unitId && u.property_id === v);
+    if (!stillValid) setUnitId("");
+  }
+
+  function onUnitChange(v: string) {
+    setUnitId(v);
+    // Auto-fill rent from market rent if blank
+    if (!rent) {
+      const u = units.find(x => x.id === v);
+      if (u?.rent_amount != null) setRent(String(u.rent_amount));
     }
-    return m;
-  }, [units]);
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -148,18 +174,34 @@ export default function LandlordLeaseForm() {
 
       <form onSubmit={onSubmit} className="mt-8 max-w-2xl space-y-5 rounded-xl border border-border bg-card p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
-            <Label htmlFor="unit">Unit</Label>
-            <Select value={unitId} onValueChange={setUnitId} disabled={isEdit}>
-              <SelectTrigger id="unit" className="mt-1.5"><SelectValue placeholder="Select a unit" /></SelectTrigger>
+          <div>
+            <Label htmlFor="property">Property</Label>
+            <Select value={propertyId} onValueChange={onPropertyChange} disabled={isEdit}>
+              <SelectTrigger id="property" className="mt-1.5">
+                <SelectValue placeholder={properties.length ? "Select a property" : "No properties yet"} />
+              </SelectTrigger>
               <SelectContent>
                 {properties.map(p => (
-                  <div key={p.id}>
-                    <div className="px-2 py-1 text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{p.name}</div>
-                    {(unitsByProp.get(p.id) ?? []).map(u => (
-                      <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
-                    ))}
-                  </div>
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {properties.length === 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                <Link to="/landlord/properties" className="text-primary hover:underline">Add a property</Link> first.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="unit">Unit</Label>
+            <Select value={unitId} onValueChange={onUnitChange} disabled={isEdit || !propertyId}>
+              <SelectTrigger id="unit" className="mt-1.5">
+                <SelectValue placeholder={!propertyId ? "Select a property first" : filteredUnits.length ? "Select a unit" : "No units in this property"} />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredUnits.map(u => (
+                  <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -169,7 +211,9 @@ export default function LandlordLeaseForm() {
           <div className="sm:col-span-2">
             <Label htmlFor="tenant">Tenant</Label>
             <Select value={tenantId} onValueChange={setTenantId}>
-              <SelectTrigger id="tenant" className="mt-1.5"><SelectValue placeholder="Select a tenant" /></SelectTrigger>
+              <SelectTrigger id="tenant" className="mt-1.5">
+                <SelectValue placeholder={tenants.length ? "Select a tenant" : "No tenants yet"} />
+              </SelectTrigger>
               <SelectContent>
                 {tenants.length === 0 ? (
                   <div className="px-2 py-2 text-sm text-muted-foreground">No tenants yet. Invite one first.</div>
@@ -179,7 +223,8 @@ export default function LandlordLeaseForm() {
               </SelectContent>
             </Select>
             <p className="mt-1 text-xs text-muted-foreground">
-              Need a new tenant? <Link to="/landlord/invite" className="text-primary hover:underline">Invite tenant</Link>.
+              Only tenants with a lease under you appear here. Need a new one?{" "}
+              <Link to="/landlord/invite" className="text-primary hover:underline">Invite tenant</Link>.
             </p>
           </div>
 
