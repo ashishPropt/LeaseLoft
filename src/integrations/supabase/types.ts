@@ -287,16 +287,65 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          account_mask: string | null
+          account_type: string | null
+          bank_name: string | null
+          created_at: string
+          id: string
+          landlord_id: string
+          provider: string
+          provider_access_token: string
+          provider_account_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_mask?: string | null
+          account_type?: string | null
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          landlord_id: string
+          provider: string
+          provider_access_token: string
+          provider_account_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_mask?: string | null
+          account_type?: string | null
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          landlord_id?: string
+          provider?: string
+          provider_access_token?: string
+          provider_account_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
           created_at: string
           due_date: string
+          failure_reason: string | null
           id: string
           lease_id: string
           method: string | null
           notes: string | null
           paid_at: string | null
+          payment_method_id: string | null
+          provider: string | null
+          provider_transfer_id: string | null
           status: Database["public"]["Enums"]["payment_status"]
           updated_at: string
         }
@@ -304,11 +353,15 @@ export type Database = {
           amount: number
           created_at?: string
           due_date: string
+          failure_reason?: string | null
           id?: string
           lease_id: string
           method?: string | null
           notes?: string | null
           paid_at?: string | null
+          payment_method_id?: string | null
+          provider?: string | null
+          provider_transfer_id?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
         }
@@ -316,11 +369,15 @@ export type Database = {
           amount?: number
           created_at?: string
           due_date?: string
+          failure_reason?: string | null
           id?: string
           lease_id?: string
           method?: string | null
           notes?: string | null
           paid_at?: string | null
+          payment_method_id?: string | null
+          provider?: string | null
+          provider_transfer_id?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
         }
@@ -330,6 +387,13 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
             referencedColumns: ["id"]
           },
         ]
@@ -522,7 +586,13 @@ export type Database = {
       lease_status: "draft" | "active" | "ended" | "terminated"
       maintenance_priority: "low" | "medium" | "high" | "urgent"
       maintenance_status: "open" | "in_progress" | "resolved" | "closed"
-      payment_status: "pending" | "paid" | "failed" | "refunded"
+      payment_status:
+        | "pending"
+        | "paid"
+        | "failed"
+        | "refunded"
+        | "processing"
+        | "returned"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -654,7 +724,14 @@ export const Constants = {
       lease_status: ["draft", "active", "ended", "terminated"],
       maintenance_priority: ["low", "medium", "high", "urgent"],
       maintenance_status: ["open", "in_progress", "resolved", "closed"],
-      payment_status: ["pending", "paid", "failed", "refunded"],
+      payment_status: [
+        "pending",
+        "paid",
+        "failed",
+        "refunded",
+        "processing",
+        "returned",
+      ],
     },
   },
 } as const
