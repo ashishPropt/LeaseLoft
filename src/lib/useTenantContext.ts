@@ -56,7 +56,7 @@ export function useTenantContext() {
         .select("id,landlord_id,unit_id,rent_amount,start_date,end_date,status")
         .eq("tenant_id", uid)
         .order("start_date", { ascending: false });
-      const active = leases?.find((l) => l.status == "active") ?? leases?.[0] ?? null;
+      const active = leases?.find((l) => l.status === "active") ?? leases?.[0] ?? null;
 
       let unit = null as TenantContext["unit"];
       let property = null as TenantContext["property"];
