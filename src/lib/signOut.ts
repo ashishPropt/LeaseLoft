@@ -7,12 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
  * - Hard-redirect to /signin so all in-memory state is dropped
  */
 export async function signOutCompletely(redirectTo: string = "/signin") {
-  try {
-    await supabase.auth.signOut({ scope: "global" });
-  } catch (err) {
-    console.error("Sign out error", err);
-  }
-
+  // Purge local auth artifacts FIRST so any in-flight re-renders see no session
+  // and can't trigger an interim <Navigate> before the hard redirect.
   try {
     const purge = (storage: Storage) => {
       const keys: string[] = [];
@@ -28,5 +24,17 @@ export async function signOutCompletely(redirectTo: string = "/signin") {
     console.error("Storage purge error", err);
   }
 
+  // Fire global sign-out but do NOT await it — we don't want the SIGNED_OUT
+  // event to cause RequireAuth to render a <Navigate> before our hard redirect.
+  // The server-side revoke will complete in the background; tokens are already
+  // gone from local storage above.
+  try {
+    void supabase.auth.signOut({ scope: "global" });
+  } catch (err) {
+    console.error("Sign out error", err);
+  }
+
+  // Single hard navigation — drops all in-memory state.
   window.location.replace(redirectTo);
 }
+
