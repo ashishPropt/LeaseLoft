@@ -51,11 +51,12 @@ export function useTenantContext() {
         "Tenant";
       const email = prof?.email ?? s.session.user.email ?? "";
 
-      const { data: leases } = await supabase
+      const { data: leases, error: leasesErr } = await supabase
         .from("leases")
         .select("id,landlord_id,unit_id,rent_amount,start_date,end_date,status")
         .eq("tenant_id", uid)
         .order("start_date", { ascending: false });
+      console.log("[TenantCtx] uid", uid, "leases", leases, "err", leasesErr);
       const active = leases?.find((l) => l.status === "active") ?? leases?.[0] ?? null;
 
       let unit = null as TenantContext["unit"];
