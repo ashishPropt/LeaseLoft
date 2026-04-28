@@ -108,7 +108,31 @@ export default function TenantDashboard() {
             <StatCard
               label="Next payment"
               value={nextDue ? money(nextDue.amount) : money(ctx.lease.rent_amount)}
-              hint={nextDue ? <StatusPill tone={nextDue.status === "paid" ? "success" : nextDue.status === "failed" ? "danger" : "warning"}>{nextDue.status === "paid" ? "Paid" : `Due ${shortDate(nextDue.due)}`}</StatusPill> : <span className="text-muted-foreground">No payments scheduled</span>}
+              hint={
+                nextDue ? (
+                  <StatusPill
+                    tone={
+                      nextDue.status === "paid"
+                        ? "success"
+                        : nextDue.status === "overdue"
+                        ? "danger"
+                        : nextDue.status === "due"
+                        ? "warning"
+                        : "info"
+                    }
+                  >
+                    {nextDue.status === "paid"
+                      ? "Paid through lease end"
+                      : nextDue.status === "overdue"
+                      ? `Overdue · was due ${shortDate(nextDue.due)}`
+                      : nextDue.status === "due"
+                      ? `Due now (${shortDate(nextDue.due)})`
+                      : `Due ${shortDate(nextDue.due)}`}
+                  </StatusPill>
+                ) : (
+                  <span className="text-muted-foreground">No payments scheduled</span>
+                )
+              }
             />
             <StatCard
               label="Lease ends"
