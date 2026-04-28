@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Home, DollarSign, Users, BarChart3, Wrench, UserPlus } from "lucide-react";
+import { Home, DollarSign, Users, BarChart3, Wrench, UserPlus, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AppSidebar, NavItem } from "./AppSidebar";
@@ -8,6 +8,7 @@ import { useIdleLogout } from "@/lib/useIdleLogout";
 
 const items: NavItem[] = [
   { to: "/landlord",              label: "Dashboard",        icon: Home },
+  { to: "/landlord/properties",   label: "Properties",       icon: Building2 },
   { to: "/landlord/payments",     label: "Payment Tracking", icon: DollarSign },
   { to: "/landlord/tenants",      label: "Tenants",          icon: Users },
   { to: "/landlord/rent-roll",    label: "Rent Roll",        icon: BarChart3 },
