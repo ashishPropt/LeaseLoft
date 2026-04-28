@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, DollarSign, Wrench, Plus, Upload } from "lucide-react";
+import { ArrowUpRight, DollarSign, Wrench, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LandlordLayout } from "@/components/layout/LandlordLayout";
 import { StatCard } from "@/components/layout/StatCard";
