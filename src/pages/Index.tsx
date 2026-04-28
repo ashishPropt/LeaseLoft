@@ -60,7 +60,7 @@ const Index = () => {
               Property management, <span className="text-primary">elevated.</span>
             </h1>
             <p className="text-lg text-muted-foreground mt-6 leading-relaxed max-w-2xl">
-              LeaseLoft brings landlords and tenants together in one secure workspace - Leases, payments & maintenance.
+              LeaseLoft™ brings landlords and tenants together in one secure workspace - Leases, payments & maintenance.
             </p>
             <div className="flex flex-wrap gap-3 mt-8">
               <Button size="lg" asChild>
@@ -109,7 +109,7 @@ const Index = () => {
       <footer className="border-t border-border">
         <div className="container py-8 flex items-center justify-between text-sm text-muted-foreground">
           <Logo size="sm" />
-          <div>© {new Date().getFullYear()} LeaseLoft</div>
+          <div>© {new Date().getFullYear()} LeaseLoft™</div>
         </div>
       </footer>
     </div>
