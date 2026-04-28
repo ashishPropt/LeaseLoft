@@ -190,12 +190,12 @@ const SignUp = () => {
 
   const subtitle =
     step === "code"
-      ? "LeaseLoft is invite-only. Enter the code you received to begin."
+      ? "LeaseLoft™ is invite-only. Enter the code you received to begin."
       : step === "details"
       ? "Invite verified. Complete your profile to create your account."
       : `We sent a 6-digit code to ${phoneMasked}. Enter it below to activate two-factor authentication and finish creating your account.`;
 
-  const title = step === "verify" ? "Verify your phone" : "Join LeaseLoft";
+  const title = step === "verify" ? "Verify your phone" : "Join LeaseLoft™";
 
   return (
     <AuthLayout

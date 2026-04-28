@@ -51,7 +51,7 @@ export const Logo = ({ size = "md", role, variant = "light", tagline = false, cl
       <LogoMark size={s.mark} variant={variant} />
       <div className="leading-tight">
         <div className={cn("font-medium tracking-tight", s.text, wordClass)}>
-          Lease<span className={accentClass}>Loft</span>
+          Lease<span className={accentClass}>Loft</span><span className="align-super text-[0.5em] ml-0.5">™</span>
         </div>
         {role ? (
           <div className={cn("text-[10px] font-medium uppercase tracking-[0.12em]", subClass)}>
