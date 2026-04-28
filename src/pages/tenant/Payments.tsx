@@ -19,7 +19,7 @@ export default function TenantPayments() {
         .from("payments")
         .select("id,amount,due_date,paid_at,method,status")
         .eq("lease_id", ctx.lease!.id)
-        .order("due_date", { ascending: false });
+        .order("due_date", { ascending: true });
       setRows((data ?? []).map((p: any) => ({
         id: p.id, amount: Number(p.amount), due: p.due_date, paid: p.paid_at, method: p.method, status: p.status,
       })));
