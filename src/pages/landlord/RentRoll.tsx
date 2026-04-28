@@ -30,14 +30,16 @@ export default function LandlordRentRoll() {
       if (!s.session) return;
       const uid = s.session.user.id;
 
-      const { data: props } = await supabase.from("properties").select("id,name").eq("owner_id", uid);
+      const { data: props, error: propsErr } = await supabase.from("properties").select("id,name").eq("owner_id", uid);
+      console.log("[RentRoll] uid", uid, "props", props, "err", propsErr);
       const propIds = (props ?? []).map(p => p.id);
       if (propIds.length === 0) { setLoading(false); return; }
 
-      const [{ data: units }, { data: leases }] = await Promise.all([
+      const [{ data: units, error: unitsErr }, { data: leases, error: leasesErr }] = await Promise.all([
         supabase.from("units").select("id,label,property_id,bedrooms,bathrooms,rent_amount").in("property_id", propIds),
         supabase.from("leases").select("id,unit_id,tenant_id,rent_amount,status").eq("landlord_id", uid).eq("status", "active"),
       ]);
+      console.log("[RentRoll] units", units?.length, unitsErr, "leases", leases?.length, leasesErr);
 
       const tenantIds = Array.from(new Set((leases ?? []).map(l => l.tenant_id)));
       const { data: profs } = tenantIds.length
