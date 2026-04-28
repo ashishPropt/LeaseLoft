@@ -480,6 +480,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      landlord_has_lease_with_tenant: {
+        Args: { _landlord_id: string; _tenant_id: string }
+        Returns: boolean
+      }
+      landlord_invited_user: {
+        Args: { _invited_user_id: string; _landlord_id: string }
+        Returns: boolean
+      }
       redeem_invite_code: {
         Args: { _code: string; _user_id: string }
         Returns: {
@@ -487,6 +495,22 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           success: boolean
         }[]
+      }
+      tenant_has_lease_on_property: {
+        Args: { _property_id: string; _user_id: string }
+        Returns: boolean
+      }
+      tenant_has_lease_on_unit: {
+        Args: { _unit_id: string; _user_id: string }
+        Returns: boolean
+      }
+      tenant_has_lease_with_landlord: {
+        Args: { _landlord_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_owns_property: {
+        Args: { _property_id: string; _user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
