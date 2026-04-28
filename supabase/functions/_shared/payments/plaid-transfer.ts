@@ -31,10 +31,9 @@ export const plaidTransferProvider: PaymentProvider = {
     const json = await plaid('/link/token/create', {
       user: { client_user_id: userId },
       client_name: 'Rent Payments',
-      products: ['transfer'],
+      products: ['auth'],
       country_codes: ['US'],
       language: 'en',
-      transfer: { intent_id: undefined }, // optional pre-created intent
     });
     return { linkToken: json.link_token };
   },
