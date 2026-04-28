@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, DollarSign, Wrench, Plus, Upload } from "lucide-react";
+import { ArrowUpRight, DollarSign, Wrench, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LandlordLayout } from "@/components/layout/LandlordLayout";
 import { StatCard } from "@/components/layout/StatCard";
@@ -130,7 +130,6 @@ export default function LandlordDashboard() {
           <p className="text-muted-foreground mt-1.5 text-sm">{data.propertyName} · {data.occupied} of {data.totalUnits} units occupied</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline"><Upload className="w-4 h-4 mr-2" />Export rent roll</Button>
           <Button asChild><Link to="/landlord/invite"><Plus className="w-4 h-4 mr-2" />Add tenant</Link></Button>
         </div>
       </div>
