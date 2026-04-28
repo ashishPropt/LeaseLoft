@@ -130,7 +130,6 @@ export default function LandlordDashboard() {
           <p className="text-muted-foreground mt-1.5 text-sm">{data.propertyName} · {data.occupied} of {data.totalUnits} units occupied</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline"><Upload className="w-4 h-4 mr-2" />Export rent roll</Button>
           <Button asChild><Link to="/landlord/invite"><Plus className="w-4 h-4 mr-2" />Add tenant</Link></Button>
         </div>
       </div>
