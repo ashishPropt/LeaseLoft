@@ -13,7 +13,7 @@ import { money, shortDate } from "@/lib/format";
 export default function TenantPayRent() {
   const { ctx, loading } = useTenantContext();
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState("card");
+  const [method, setMethod] = useState("ach");
   const [submitting, setSubmitting] = useState(false);
   const [pending, setPending] = useState<{ id: string; amount: number; due_date: string } | null>(null);
   const [success, setSuccess] = useState(false);
@@ -112,10 +112,7 @@ export default function TenantPayRent() {
               <Select value={method} onValueChange={setMethod}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="card">Credit / debit card</SelectItem>
                   <SelectItem value="ach">Bank transfer (ACH)</SelectItem>
-                  <SelectItem value="check">Check</SelectItem>
-                  <SelectItem value="cash">Cash</SelectItem>
                 </SelectContent>
               </Select>
             </div>
