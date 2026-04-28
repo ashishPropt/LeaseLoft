@@ -1,14 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Fully end the current user session:
- * - Sign out globally (revoke refresh tokens on the server across all devices/tabs)
- * - Clear any sb-* auth artifacts from localStorage and sessionStorage
- * - Hard-redirect to /signin so all in-memory state is dropped
+ * Fully end the current user session in a single navigation:
+ *  1. Purge sb-* / supabase auth artifacts from local + session storage so any
+ *     in-flight re-renders see no session.
+ *  2. Fire a local sign-out (no network) — this clears the in-memory client
+ *     session without emitting a SIGNED_OUT round-trip that would cause
+ *     RequireAuth to <Navigate> before our hard redirect.
+ *  3. Kick off a background global revoke (fire-and-forget) so refresh tokens
+ *     are invalidated server-side across devices.
+ *  4. Hard-redirect once to drop all in-memory state.
  */
+let signingOut = false;
+
 export async function signOutCompletely(redirectTo: string = "/signin") {
-  // Purge local auth artifacts FIRST so any in-flight re-renders see no session
-  // and can't trigger an interim <Navigate> before the hard redirect.
+  if (signingOut) return;
+  signingOut = true;
+
   try {
     const purge = (storage: Storage) => {
       const keys: string[] = [];
@@ -24,17 +32,25 @@ export async function signOutCompletely(redirectTo: string = "/signin") {
     console.error("Storage purge error", err);
   }
 
-  // Fire global sign-out but do NOT await it — we don't want the SIGNED_OUT
-  // event to cause RequireAuth to render a <Navigate> before our hard redirect.
-  // The server-side revoke will complete in the background; tokens are already
-  // gone from local storage above.
+  // Local sign-out: clears in-memory session without a network call.
+  // This avoids emitting a SIGNED_OUT event that would race our redirect.
   try {
-    void supabase.auth.signOut({ scope: "global" });
+    void supabase.auth.signOut({ scope: "local" });
   } catch (err) {
-    console.error("Sign out error", err);
+    console.error("Local sign out error", err);
+  }
+
+  // Background server-side revoke. Don't await — we're navigating away.
+  try {
+    void fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/logout?scope=global`, {
+      method: "POST",
+      keepalive: true,
+      headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+    }).catch(() => {});
+  } catch {
+    /* noop */
   }
 
   // Single hard navigation — drops all in-memory state.
   window.location.replace(redirectTo);
 }
-
