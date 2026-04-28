@@ -24,6 +24,15 @@ async function plaid(path: string, body: Record<string, unknown>) {
   return json;
 }
 
+async function shortHash(value: unknown) {
+  const encoded = new TextEncoder().encode(JSON.stringify(value));
+  const digest = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 16);
+}
+
 export const plaidTransferProvider: PaymentProvider = {
   name: 'plaid_transfer',
 
@@ -57,16 +66,22 @@ export const plaidTransferProvider: PaymentProvider = {
   },
 
   async initiatePayment(input: InitiateInput): Promise<InitiateResult> {
-    // 1. Authorize
-    const auth = await plaid('/transfer/authorization/create', {
+    const amount = (input.amountCents / 100).toFixed(2);
+    const authorizationPayload = {
       access_token: input.accessToken,
       account_id: input.providerAccountId,
       type: 'debit',
       network: 'ach',
-      amount: (input.amountCents / 100).toFixed(2),
+      amount,
       ach_class: 'web',
       user: { legal_name: input.userName },
-      idempotency_key: `auth_${input.idempotencyKey}_${input.amountCents}`.slice(0, 50),
+    };
+    const idempotencyHash = await shortHash(authorizationPayload);
+
+    // 1. Authorize
+    const auth = await plaid('/transfer/authorization/create', {
+      ...authorizationPayload,
+      idempotency_key: `auth_${input.idempotencyKey.replaceAll('-', '').slice(0, 20)}_${idempotencyHash}`,
     });
     if (auth.authorization?.decision !== 'approved') {
       return {
