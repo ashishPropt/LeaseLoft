@@ -11,7 +11,7 @@ import { money, shortDate } from "@/lib/format";
 
 export default function TenantDashboard() {
   const { ctx, loading } = useTenantContext();
-  const [nextDue, setNextDue] = useState<{ amount: number; due: string; status: string } | null>(null);
+  const [nextDue, setNextDue] = useState<{ amount: number; due: string; status: "paid" | "due" | "upcoming" | "overdue" } | null>(null);
   const [openTickets, setOpenTickets] = useState(0);
 
   useEffect(() => {
@@ -22,8 +22,54 @@ export default function TenantDashboard() {
         .select("amount,due_date,status,paid_at")
         .eq("lease_id", ctx.lease!.id)
         .order("due_date", { ascending: true });
-      const upcoming = (pays ?? []).find(p => p.status !== "paid") ?? (pays ?? [])[pays?.length ? pays.length - 1 : 0];
-      if (upcoming) setNextDue({ amount: Number(upcoming.amount), due: upcoming.due_date, status: upcoming.status });
+
+      // Build the schedule of 1st-of-month due dates within the lease term.
+      const lease = ctx.lease!;
+      const start = new Date(lease.start_date);
+      const end = new Date(lease.end_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // First due: 1st of the lease's start month (or start date itself if lease begins on the 1st).
+      // Use first of the start month, but if start date is after the 1st, the first due is the 1st of the next month.
+      let cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+      if (start.getDate() > 1) cursor = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+
+      const schedule: Date[] = [];
+      while (cursor <= end) {
+        schedule.push(new Date(cursor));
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      }
+
+      // Index paid payments by YYYY-MM of due_date.
+      const paidMonths = new Set(
+        (pays ?? [])
+          .filter((p) => p.status === "paid")
+          .map((p) => {
+            const d = new Date(p.due_date);
+            return `${d.getFullYear()}-${d.getMonth()}`;
+          })
+      );
+
+      // Find the next unpaid due date.
+      const nextUnpaid = schedule.find((d) => !paidMonths.has(`${d.getFullYear()}-${d.getMonth()}`));
+
+      if (nextUnpaid) {
+        const grace = new Date(nextUnpaid);
+        grace.setDate(grace.getDate() + 3);
+        let status: "due" | "upcoming" | "overdue" = "upcoming";
+        if (today > grace) status = "overdue";
+        else if (today >= nextUnpaid) status = "due";
+        setNextDue({
+          amount: Number(lease.rent_amount),
+          due: nextUnpaid.toISOString().slice(0, 10),
+          status,
+        });
+      } else if (schedule.length > 0) {
+        // All months paid through lease end.
+        const last = schedule[schedule.length - 1];
+        setNextDue({ amount: Number(lease.rent_amount), due: last.toISOString().slice(0, 10), status: "paid" });
+      }
 
       const { data: m } = await supabase
         .from("maintenance_requests")
