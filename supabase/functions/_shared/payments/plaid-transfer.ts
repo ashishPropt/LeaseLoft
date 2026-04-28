@@ -66,7 +66,7 @@ export const plaidTransferProvider: PaymentProvider = {
       amount: (input.amountCents / 100).toFixed(2),
       ach_class: 'web',
       user: { legal_name: input.userName },
-      idempotency_key: `auth_${input.idempotencyKey}`,
+      idempotency_key: `auth_${input.idempotencyKey}_${input.amountCents}`.slice(0, 50),
     });
     if (auth.authorization?.decision !== 'approved') {
       return {
