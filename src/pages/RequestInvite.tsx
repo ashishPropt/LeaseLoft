@@ -66,9 +66,13 @@ const RequestInvite = () => {
         title="Request received"
         subtitle="Thanks! An admin will review your request and email you an invite code if approved."
         footer={
-          <Link to="/" className="text-primary font-medium hover:underline">
+          <button
+            type="button"
+            onClick={() => signOutCompletely("/")}
+            className="text-primary font-medium hover:underline"
+          >
             Back to home
-          </Link>
+          </button>
         }
       >
         <div className="space-y-4">
@@ -80,7 +84,7 @@ const RequestInvite = () => {
               <li>Use that code on the Sign Up page to create your account.</li>
             </ul>
           </div>
-          <Button variant="outline" className="w-full" onClick={() => navigate("/signin")}>
+          <Button variant="outline" className="w-full" onClick={() => signOutCompletely("/signin")}>
             Go to sign in
           </Button>
         </div>
