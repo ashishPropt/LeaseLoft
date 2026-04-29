@@ -14,7 +14,7 @@ export const AuthLayout = ({ title, subtitle, children, footer }: Props) => {
       <div className="flex flex-col justify-center px-6 sm:px-10 lg:px-16 py-12">
         <div className="w-full max-w-md mx-auto">
           <div className="mb-10">
-            <Logo size="md" />
+            <Logo size="md" to="/" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
           {subtitle && <p className="text-sm text-muted-foreground mt-2">{subtitle}</p>}
@@ -25,7 +25,7 @@ export const AuthLayout = ({ title, subtitle, children, footer }: Props) => {
 
       {/* Right: brand panel */}
       <div className="hidden lg:flex bg-gradient-dark text-white p-12 flex-col justify-between">
-        <Logo size="md" variant="dark" />
+        <Logo size="md" variant="dark" to="/" />
         <div className="max-w-md">
           <h2 className="text-3xl font-medium leading-tight">
             Property management,<br />

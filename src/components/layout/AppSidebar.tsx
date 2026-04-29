@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
+import { signOutCompletely } from "@/lib/signOut";
 
 export interface NavItem {
   to: string;
@@ -19,7 +20,7 @@ export const AppSidebar = ({ role, items, user }: AppSidebarProps) => {
   return (
     <aside className="hidden lg:flex flex-col w-64 shrink-0 border-r border-border bg-card">
       <div className="p-6 pb-5 border-b border-dashed border-border">
-        <Logo size="md" role={role} />
+        <Logo size="md" role={role} onClick={() => signOutCompletely("/")} />
       </div>
 
       <nav className="flex-1 p-4 space-y-1">

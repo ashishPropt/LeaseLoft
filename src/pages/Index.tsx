@@ -33,7 +33,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="container flex items-center justify-between h-16">
-          <Logo size="sm" />
+          <Logo size="sm" to="/" />
           <nav className="flex items-center gap-3">
             {hasSession ? (
               <Button variant="ghost" size="sm" onClick={signOut}>
@@ -114,7 +114,7 @@ const Index = () => {
 
       <footer className="border-t border-border">
         <div className="container py-8 flex items-center justify-between text-sm text-muted-foreground">
-          <Logo size="sm" />
+          <Logo size="sm" to="/" />
           <div>© {new Date().getFullYear()} LeaseLoft™</div>
         </div>
       </footer>
