@@ -91,7 +91,7 @@ const Index = () => {
               {
                 icon: Building2,
                 title: "Built for both sides",
-                body: "Tenants pay rent and report issues. Landlords manage properties, leases, and payments.",
+                body: "Tenants pay rent and report issues. Landlords manage properties, leases, and payments. Join to learn more.",
               },
             ].map(({ icon: Icon, title, body }) => (
               <div key={title} className="rounded-xl border border-border bg-card p-6 shadow-card">
