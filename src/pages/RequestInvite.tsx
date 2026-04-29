@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutCompletely } from "@/lib/signOut";
 import { toast } from "sonner";
 
 const schema = z.object({
@@ -65,9 +66,13 @@ const RequestInvite = () => {
         title="Request received"
         subtitle="Thanks! An admin will review your request and email you an invite code if approved."
         footer={
-          <Link to="/" className="text-primary font-medium hover:underline">
+          <button
+            type="button"
+            onClick={() => signOutCompletely("/")}
+            className="text-primary font-medium hover:underline"
+          >
             Back to home
-          </Link>
+          </button>
         }
       >
         <div className="space-y-4">
@@ -79,7 +84,7 @@ const RequestInvite = () => {
               <li>Use that code on the Sign Up page to create your account.</li>
             </ul>
           </div>
-          <Button variant="outline" className="w-full" onClick={() => navigate("/signin")}>
+          <Button variant="outline" className="w-full" onClick={() => signOutCompletely("/signin")}>
             Go to sign in
           </Button>
         </div>
