@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 interface LogoMarkProps {
@@ -33,6 +34,10 @@ interface LogoProps {
   variant?: "light" | "dark";
   tagline?: boolean;
   className?: string;
+  /** When provided, wraps the logo in a router Link to this path. */
+  to?: string;
+  /** Custom click handler — overrides `to` (use for full-page navigation/sign-out). */
+  onClick?: () => void;
 }
 
 const sizes = {
@@ -41,13 +46,14 @@ const sizes = {
   lg: { mark: 52, text: "text-2xl" },
 };
 
-export const Logo = ({ size = "md", role, variant = "light", tagline = false, className }: LogoProps) => {
+export const Logo = ({ size = "md", role, variant = "light", tagline = false, className, to, onClick }: LogoProps) => {
   const s = sizes[size];
   const wordClass = variant === "dark" ? "text-white" : "text-foreground";
   const accentClass = variant === "dark" ? "text-primary-light" : "text-primary";
   const subClass = variant === "dark" ? "text-primary-light/70" : "text-muted-foreground";
-  return (
-    <div className={cn("flex items-center gap-3", className)}>
+
+  const content = (
+    <>
       <LogoMark size={s.mark} variant={variant} />
       <div className="leading-tight">
         <div className={cn("font-medium tracking-tight", s.text, wordClass)}>
@@ -61,6 +67,26 @@ export const Logo = ({ size = "md", role, variant = "light", tagline = false, cl
           <div className={cn("text-xs", subClass)}>Property management, elevated</div>
         ) : null}
       </div>
-    </div>
+    </>
   );
+
+  const baseClass = cn("flex items-center gap-3", className);
+  const interactiveClass = "rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} aria-label="Go to homepage" className={cn(baseClass, interactiveClass)}>
+        {content}
+      </button>
+    );
+  }
+  if (to) {
+    return (
+      <Link to={to} aria-label="Go to homepage" className={cn(baseClass, interactiveClass)}>
+        {content}
+      </Link>
+    );
+  }
+  return <div className={baseClass}>{content}</div>;
 };
+
