@@ -44,6 +44,9 @@ const Index = () => {
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/signin">Sign in</Link>
                 </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/request-invite">Request invite</Link>
+                </Button>
                 <Button size="sm" asChild>
                   <Link to="/signup">Join with invite</Link>
                 </Button>
@@ -69,6 +72,9 @@ const Index = () => {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
+                <Link to="/request-invite">Request an invite</Link>
+              </Button>
+              <Button size="lg" variant="ghost" asChild>
                 <Link to="/signin">Sign in</Link>
               </Button>
             </div>

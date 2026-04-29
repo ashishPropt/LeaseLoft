@@ -133,6 +133,54 @@ export type Database = {
         }
         Relationships: []
       }
+      invite_requests: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          generated_invite_code: string | null
+          id: string
+          last_name: string
+          note: string | null
+          requested_role: Database["public"]["Enums"]["app_role"]
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["invite_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          generated_invite_code?: string | null
+          id?: string
+          last_name: string
+          note?: string | null
+          requested_role: Database["public"]["Enums"]["app_role"]
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["invite_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          generated_invite_code?: string | null
+          id?: string
+          last_name?: string
+          note?: string | null
+          requested_role?: Database["public"]["Enums"]["app_role"]
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["invite_request_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leases: {
         Row: {
           created_at: string
@@ -583,6 +631,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "landlord" | "tenant"
+      invite_request_status: "pending" | "approved" | "rejected"
       lease_status: "draft" | "active" | "ended" | "terminated"
       maintenance_priority: "low" | "medium" | "high" | "urgent"
       maintenance_status: "open" | "in_progress" | "resolved" | "closed"
@@ -721,6 +770,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "landlord", "tenant"],
+      invite_request_status: ["pending", "approved", "rejected"],
       lease_status: ["draft", "active", "ended", "terminated"],
       maintenance_priority: ["low", "medium", "high", "urgent"],
       maintenance_status: ["open", "in_progress", "resolved", "closed"],
