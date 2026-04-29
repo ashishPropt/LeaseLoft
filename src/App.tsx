@@ -21,7 +21,9 @@ import LandlordProperties from "./pages/landlord/Properties.tsx";
 import LandlordPropertyDetail from "./pages/landlord/PropertyDetail.tsx";
 import AdminUsers from "./pages/admin/Users.tsx";
 import AdminInvites from "./pages/admin/Invites.tsx";
+import AdminRequests from "./pages/admin/Requests.tsx";
 import AdminProperties from "./pages/admin/Properties.tsx";
+import RequestInvite from "./pages/RequestInvite.tsx";
 import TenantDashboard from "./pages/tenant/Dashboard.tsx";
 import TenantLease from "./pages/tenant/Lease.tsx";
 import TenantPayRent from "./pages/tenant/PayRent.tsx";
@@ -42,6 +44,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/request-invite" element={<RequestInvite />} />
           <Route path="/verify-2fa" element={<Verify2FA />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
@@ -58,6 +61,7 @@ const App = () => (
           <Route path="/landlord/properties/:id" element={<LandlordPropertyDetail />} />
 
           <Route path="/admin" element={<AdminUsers />} />
+          <Route path="/admin/requests" element={<AdminRequests />} />
           <Route path="/admin/invites" element={<AdminInvites />} />
           <Route path="/admin/properties" element={<AdminProperties />} />
 

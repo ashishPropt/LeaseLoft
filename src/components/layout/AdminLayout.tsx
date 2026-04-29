@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, Ticket, Building2 } from "lucide-react";
+import { Users, Ticket, Building2, Inbox } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AppSidebar, NavItem } from "./AppSidebar";
@@ -8,6 +8,7 @@ import { useIdleLogout } from "@/lib/useIdleLogout";
 
 const items: NavItem[] = [
   { to: "/admin",            label: "Users",      icon: Users },
+  { to: "/admin/requests",   label: "Requests",   icon: Inbox },
   { to: "/admin/invites",    label: "Invites",    icon: Ticket },
   { to: "/admin/properties", label: "Properties", icon: Building2 },
 ];
