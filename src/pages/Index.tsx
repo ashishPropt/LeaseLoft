@@ -68,9 +68,6 @@ const Index = () => {
               <Button size="lg" variant="outline" asChild>
                 <Link to="/request-invite">Request an invite</Link>
               </Button>
-              <Button size="lg" variant="ghost" asChild>
-                <Link to="/signin">Sign in</Link>
-              </Button>
             </div>
           </div>
         </section>
