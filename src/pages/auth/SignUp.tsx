@@ -230,6 +230,12 @@ const SignUp = () => {
           <Button type="submit" className="w-full" disabled={validating}>
             {validating ? "Verifying…" : "Verify code"}
           </Button>
+          <p className="text-center text-sm text-muted-foreground pt-2">
+            Don't have a code?{" "}
+            <Link to="/request-invite" className="text-primary font-medium hover:underline">
+              Request one
+            </Link>
+          </p>
         </form>
       )}
 
