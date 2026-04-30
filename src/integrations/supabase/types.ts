@@ -380,6 +380,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_status_audit: {
+        Row: {
+          changed_by: string
+          created_at: string
+          id: string
+          new_method: string | null
+          new_paid_at: string | null
+          new_status: Database["public"]["Enums"]["payment_status"]
+          old_method: string | null
+          old_paid_at: string | null
+          old_status: Database["public"]["Enums"]["payment_status"] | null
+          payment_id: string
+          reason: string | null
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          id?: string
+          new_method?: string | null
+          new_paid_at?: string | null
+          new_status: Database["public"]["Enums"]["payment_status"]
+          old_method?: string | null
+          old_paid_at?: string | null
+          old_status?: Database["public"]["Enums"]["payment_status"] | null
+          payment_id: string
+          reason?: string | null
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          id?: string
+          new_method?: string | null
+          new_paid_at?: string | null
+          new_status?: Database["public"]["Enums"]["payment_status"]
+          old_method?: string | null
+          old_paid_at?: string | null
+          old_status?: Database["public"]["Enums"]["payment_status"] | null
+          payment_id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -603,6 +645,36 @@ export type Database = {
       landlord_invited_user: {
         Args: { _invited_user_id: string; _landlord_id: string }
         Returns: boolean
+      }
+      landlord_update_payment_status: {
+        Args: {
+          _method: string
+          _new_status: Database["public"]["Enums"]["payment_status"]
+          _payment_id: string
+          _reason: string
+        }
+        Returns: {
+          amount: number
+          created_at: string
+          due_date: string
+          failure_reason: string | null
+          id: string
+          lease_id: string
+          method: string | null
+          notes: string | null
+          paid_at: string | null
+          payment_method_id: string | null
+          provider: string | null
+          provider_transfer_id: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       redeem_invite_code: {
         Args: { _code: string; _user_id: string }
