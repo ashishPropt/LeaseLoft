@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { AuthLayout } from "@/components/auth/AuthLayout";
@@ -19,10 +19,36 @@ const schema = z.object({
   note: z.string().trim().max(1000).optional(),
 });
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        el: HTMLElement,
+        opts: {
+          sitekey: string;
+          callback: (token: string) => void;
+          "error-callback"?: () => void;
+          "expired-callback"?: () => void;
+          theme?: "light" | "dark" | "auto";
+        },
+      ) => string;
+      reset: (id?: string) => void;
+      remove: (id?: string) => void;
+    };
+  }
+}
+
+const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+
 const RequestInvite = () => {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [siteKey, setSiteKey] = useState<string | null>(null);
+  const [token, setToken] = useState<string>("");
+  const widgetRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | null>(null);
+
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -35,6 +61,53 @@ const RequestInvite = () => {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
+  // Fetch site key
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("turnstile-config");
+        if (error) throw error;
+        if (data?.site_key) setSiteKey(data.site_key);
+      } catch (e) {
+        console.error("[RequestInvite] failed to load Turnstile config", e);
+      }
+    })();
+  }, []);
+
+  // Load Turnstile script + render widget
+  useEffect(() => {
+    if (!siteKey || submitted) return;
+
+    const renderWidget = () => {
+      if (!window.turnstile || !widgetRef.current || widgetIdRef.current) return;
+      widgetIdRef.current = window.turnstile.render(widgetRef.current, {
+        sitekey: siteKey,
+        callback: (t: string) => setToken(t),
+        "error-callback": () => setToken(""),
+        "expired-callback": () => setToken(""),
+        theme: "auto",
+      });
+    };
+
+    if (!document.querySelector(`script[src="${SCRIPT_SRC}"]`)) {
+      const s = document.createElement("script");
+      s.src = SCRIPT_SRC;
+      s.async = true;
+      s.defer = true;
+      s.onload = renderWidget;
+      document.head.appendChild(s);
+    } else {
+      renderWidget();
+    }
+
+    return () => {
+      if (widgetIdRef.current && window.turnstile) {
+        try { window.turnstile.remove(widgetIdRef.current); } catch { /* noop */ }
+        widgetIdRef.current = null;
+      }
+    };
+  }, [siteKey, submitted]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = schema.safeParse(form);
@@ -43,17 +116,34 @@ const RequestInvite = () => {
       toast.error(first || "Please fill out all required fields");
       return;
     }
+    if (!token) {
+      toast.error("Please complete the human verification");
+      return;
+    }
     setSubmitting(true);
-    const { error } = await supabase.from("invite_requests").insert({
-      first_name: parsed.data.first_name,
-      last_name: parsed.data.last_name,
-      email: parsed.data.email,
-      requested_role: parsed.data.requested_role,
-      note: parsed.data.note || null,
+    const { data, error } = await supabase.functions.invoke("submit-invite-request", {
+      body: {
+        first_name: parsed.data.first_name,
+        last_name: parsed.data.last_name,
+        email: parsed.data.email,
+        requested_role: parsed.data.requested_role,
+        note: parsed.data.note || null,
+        turnstile_token: token,
+      },
     });
     setSubmitting(false);
-    if (error) {
-      toast.error("We couldn't submit your request right now. Please try again.");
+
+    const errMsg =
+      (data && typeof data === "object" && "error" in data && (data as { error?: string }).error) ||
+      error?.message;
+
+    if (errMsg) {
+      toast.error(errMsg);
+      // Reset widget so user can retry
+      if (widgetIdRef.current && window.turnstile) {
+        try { window.turnstile.reset(widgetIdRef.current); } catch { /* noop */ }
+      }
+      setToken("");
       return;
     }
     setSubmitted(true);
@@ -145,7 +235,15 @@ const RequestInvite = () => {
           />
         </div>
 
-        <Button type="submit" className="w-full" disabled={submitting || !form.requested_role}>
+        <div className="flex justify-center">
+          <div ref={widgetRef} />
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={submitting || !form.requested_role || !token}
+        >
           {submitting ? "Submitting…" : "Request invite code"}
         </Button>
       </form>
