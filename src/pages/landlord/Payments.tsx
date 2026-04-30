@@ -39,7 +39,7 @@ export default function LandlordPayments() {
       if (leaseIds.length === 0) { setRows([]); setLoading(false); return; }
 
       const [{ data: pays }, { data: units }, { data: profiles }] = await Promise.all([
-        supabase.from("payments").select("*").in("lease_id", leaseIds).order("due_date", { ascending: false }),
+        supabase.from("payments").select("*").in("lease_id", leaseIds).order("due_date", { ascending: true }),
         supabase.from("units").select("id,label,property_id"),
         supabase.from("profiles").select("id,full_name,first_name,last_name,email").in("id", Array.from(new Set((leases ?? []).map(l => l.tenant_id)))),
       ]);
