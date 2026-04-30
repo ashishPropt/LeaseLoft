@@ -223,9 +223,6 @@ const SignUp = () => {
               required
               autoFocus
             />
-            <p className="text-xs text-muted-foreground">
-              Try <code className="font-mono">LL-2026-XJ4K</code> or <code className="font-mono">TN-2026-A7B3</code>.
-            </p>
           </div>
           <Button type="submit" className="w-full" disabled={validating}>
             {validating ? "Verifying…" : "Verify code"}
