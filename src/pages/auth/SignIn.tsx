@@ -87,6 +87,17 @@ const SignIn = () => {
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Signing in…" : "Sign in"}
         </Button>
+        <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground leading-relaxed">
+          <p>
+            Your account is protected by two-factor authentication (2FA). A one-time code may be sent to your verified
+            mobile number when signing in from a new device.
+          </p>
+          <p className="mt-2">
+            We never sell or share your personal information with third parties for marketing. See our{" "}
+            <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link> and{" "}
+            <Link to="/terms" className="text-primary hover:underline">Terms of Use</Link>.
+          </p>
+        </div>
       </form>
     </AuthLayout>
   );
