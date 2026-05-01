@@ -111,8 +111,8 @@ const H2 = ({ id, children }: { id?: string; children: React.ReactNode }) => (
     {children}
   </h2>
 );
-const P = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-base text-muted-foreground leading-relaxed mb-4">{children}</p>
+const P = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <p className={`text-base text-muted-foreground leading-relaxed mb-4 ${className}`}>{children}</p>
 );
 const UL = ({ children }: { children: React.ReactNode }) => (
   <ul className="list-disc pl-6 space-y-1.5 text-muted-foreground mb-4 leading-relaxed">{children}</ul>
