@@ -48,6 +48,8 @@ const App = () => (
           <Route path="/request-invite" element={<RequestInvite />} />
           <Route path="/verify-2fa" element={<Verify2FA />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/privacy" element={<Legal />} />
+          <Route path="/terms" element={<Legal />} />
 
           <Route path="/landlord" element={<LandlordDashboard />} />
           <Route path="/landlord/payments" element={<LandlordPayments />} />
