@@ -24,6 +24,7 @@ import AdminInvites from "./pages/admin/Invites.tsx";
 import AdminRequests from "./pages/admin/Requests.tsx";
 import AdminProperties from "./pages/admin/Properties.tsx";
 import RequestInvite from "./pages/RequestInvite.tsx";
+import Legal from "./pages/Legal.tsx";
 import TenantDashboard from "./pages/tenant/Dashboard.tsx";
 import TenantLease from "./pages/tenant/Lease.tsx";
 import TenantPayRent from "./pages/tenant/PayRent.tsx";
