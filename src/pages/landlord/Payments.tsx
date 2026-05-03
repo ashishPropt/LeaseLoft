@@ -16,7 +16,11 @@ import { money, shortDate } from "@/lib/format";
 interface Row {
   id: string;
   tenant: string;
+  tenantId: string;
   unit: string;
+  unitId: string;
+  leaseId: string;
+  leaseLabel: string;
   due: string;
   paid: string | null;
   amount: number;
