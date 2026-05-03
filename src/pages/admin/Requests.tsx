@@ -205,6 +205,20 @@ export default function AdminRequests() {
     }
   }
 
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await supabase.from("invite_requests").delete().eq("id", deleteTarget.id);
+    setDeleting(false);
+    if (error) {
+      toast({ title: "Could not delete", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Request deleted" });
+      setDeleteTarget(null);
+      load();
+    }
+  }
+
   async function copyCode(code: string) {
     await navigator.clipboard.writeText(code);
     setCopied(code);
