@@ -84,16 +84,22 @@ Deno.serve(async (req) => {
 
     // Fire-and-forget thank-you email (do not block the response on email)
     try {
-      const { error: emailError } = await sb.functions.invoke('send-transactional-email', {
-        body: {
+      const res = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${anonKey}`,
+          apikey: anonKey,
+        },
+        body: JSON.stringify({
           templateName: 'invite-request-received',
           recipientEmail: email,
           idempotencyKey: `invite-received-${email}-${Date.now()}`,
           templateData: { firstName: first_name, requestedRole: requested_role },
-        },
+        }),
       });
-      if (emailError) {
-        console.warn('[submit-invite-request] email send failed', emailError);
+      if (!res.ok) {
+        console.warn('[submit-invite-request] email send failed', res.status, await res.text());
       }
     } catch (e) {
       console.warn('[submit-invite-request] email send failed', e);
