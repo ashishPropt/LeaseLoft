@@ -275,6 +275,7 @@ export type Database = {
           id: string
           landlord_id: string
           property_id: string | null
+          public_slug: string
           rent_amount: number
           start_date: string
           status: Database["public"]["Enums"]["lease_status"]
@@ -288,6 +289,7 @@ export type Database = {
           id?: string
           landlord_id: string
           property_id?: string | null
+          public_slug?: string
           rent_amount: number
           start_date: string
           status?: Database["public"]["Enums"]["lease_status"]
@@ -301,6 +303,7 @@ export type Database = {
           id?: string
           landlord_id?: string
           property_id?: string | null
+          public_slug?: string
           rent_amount?: number
           start_date?: string
           status?: Database["public"]["Enums"]["lease_status"]
@@ -619,6 +622,7 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          public_slug: string
           state: string | null
           updated_at: string
           zip: string | null
@@ -630,6 +634,7 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          public_slug?: string
           state?: string | null
           updated_at?: string
           zip?: string | null
@@ -641,6 +646,7 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          public_slug?: string
           state?: string | null
           updated_at?: string
           zip?: string | null
@@ -746,6 +752,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      gen_public_slug: { Args: never; Returns: string }
       generate_lease_payments: {
         Args: { _lease_id: string }
         Returns: undefined

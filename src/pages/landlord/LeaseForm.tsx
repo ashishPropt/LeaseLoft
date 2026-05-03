@@ -20,8 +20,9 @@ interface PropOpt { id: string; name: string; }
 interface TenantOpt { id: string; name: string; email: string; }
 
 export default function LandlordLeaseForm() {
-  const { id } = useParams<{ id: string }>();
-  const isEdit = Boolean(id);
+  const { slug } = useParams<{ slug: string }>();
+  const isEdit = Boolean(slug);
+  const [editingId, setEditingId] = useState<string>("");
   const [params] = useSearchParams();
   const navigate = useNavigate();
 
@@ -77,9 +78,10 @@ export default function LandlordLeaseForm() {
       // Exclude tenants who already have an active lease (the user only wants tenants without active leases).
       // But always keep the currently-edited lease's tenant available.
       let editingTenantId: string | null = null;
-      if (isEdit && id) {
-        const { data: leaseRow } = await supabase.from("leases").select("tenant_id").eq("id", id).maybeSingle();
+      if (isEdit && slug) {
+        const { data: leaseRow } = await supabase.from("leases").select("id,tenant_id").eq("public_slug", slug).maybeSingle();
         editingTenantId = leaseRow?.tenant_id ?? null;
+        if (leaseRow?.id) setEditingId(leaseRow.id);
         if (editingTenantId) candidateIds.add(editingTenantId);
       }
 
@@ -96,9 +98,10 @@ export default function LandlordLeaseForm() {
         setTenants([]);
       }
 
-      if (isEdit && id) {
-        const { data: lease } = await supabase.from("leases").select("*").eq("id", id).maybeSingle();
+      if (isEdit && slug) {
+        const { data: lease } = await supabase.from("leases").select("*").eq("public_slug", slug).maybeSingle();
         if (lease) {
+          setEditingId(lease.id);
           setUnitId(lease.unit_id);
           setTenantId(lease.tenant_id);
           setStartDate(lease.start_date);
@@ -119,7 +122,7 @@ export default function LandlordLeaseForm() {
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isEdit]);
+  }, [slug, isEdit]);
 
   const filteredUnits = useMemo(
     () => (propertyId ? units.filter(u => u.property_id === propertyId) : []),
@@ -163,9 +166,9 @@ export default function LandlordLeaseForm() {
       status,
     };
 
-    const res = isEdit && id
-      ? await supabase.from("leases").update(payload).eq("id", id).select("id").maybeSingle()
-      : await supabase.from("leases").insert(payload).select("id").maybeSingle();
+    const res = isEdit && editingId
+      ? await supabase.from("leases").update(payload).eq("id", editingId).select("public_slug").maybeSingle()
+      : await supabase.from("leases").insert(payload).select("public_slug").maybeSingle();
 
     setSaving(false);
     if (res.error) {
@@ -177,7 +180,7 @@ export default function LandlordLeaseForm() {
       return;
     }
     toast.success(isEdit ? "Lease updated" : "Lease created");
-    navigate(`/landlord/leases/${res.data?.id ?? id}`);
+    navigate(`/landlord/leases/${res.data?.public_slug ?? slug}`);
   }
 
   if (loading) {

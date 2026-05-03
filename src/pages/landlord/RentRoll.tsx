@@ -16,7 +16,7 @@ interface Row {
   marketRent: number;
   tenant: string | null;
   leaseRent: number | null;
-  leaseId: string | null;
+  leaseSlug: string | null;
   status: "occupied" | "vacant";
 }
 
@@ -37,7 +37,7 @@ export default function LandlordRentRoll() {
 
       const [{ data: units, error: unitsErr }, { data: leases, error: leasesErr }] = await Promise.all([
         supabase.from("units").select("id,label,property_id,bedrooms,bathrooms,rent_amount").in("property_id", propIds),
-        supabase.from("leases").select("id,unit_id,tenant_id,rent_amount,status").eq("landlord_id", uid).eq("status", "active"),
+        supabase.from("leases").select("id,public_slug,unit_id,tenant_id,rent_amount,status").eq("landlord_id", uid).eq("status", "active"),
       ]);
       console.log("[RentRoll] units", units?.length, unitsErr, "leases", leases?.length, leasesErr);
 
@@ -62,7 +62,7 @@ export default function LandlordRentRoll() {
           marketRent: Number(u.rent_amount ?? 0),
           tenant: lease ? (tenantById.get(lease.tenant_id) ?? "Tenant") : null,
           leaseRent: lease ? Number(lease.rent_amount) : null,
-          leaseId: lease ? lease.id : null,
+          leaseSlug: lease ? lease.public_slug : null,
           status: (lease ? "occupied" : "vacant") as "occupied" | "vacant",
         };
       }).sort((a, b) => a.property.localeCompare(b.property) || a.unit.localeCompare(b.unit)));
@@ -129,10 +129,10 @@ export default function LandlordRentRoll() {
                   {money(r.leaseRent ?? r.marketRent)}
                 </td>
                 <td className="px-6 py-4 text-right">
-                  {r.leaseId ? (
+                  {r.leaseSlug ? (
                     <div className="flex items-center justify-end gap-3">
-                      <Link to={`/landlord/leases/${r.leaseId}`} className="text-primary text-xs hover:underline">View</Link>
-                      <Link to={`/landlord/leases/${r.leaseId}/edit`} className="text-primary text-xs hover:underline">Edit</Link>
+                      <Link to={`/landlord/leases/${r.leaseSlug}`} className="text-primary text-xs hover:underline">View</Link>
+                      <Link to={`/landlord/leases/${r.leaseSlug}/edit`} className="text-primary text-xs hover:underline">Edit</Link>
                     </div>
                   ) : (
                     <Link to={`/landlord/leases/new?unit_id=${r.unitId}`} className="text-primary text-xs hover:underline">New lease</Link>

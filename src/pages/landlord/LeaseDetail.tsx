@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 interface LeaseRow {
   id: string;
+  public_slug: string;
   unit_id: string;
   tenant_id: string;
   landlord_id: string;
@@ -26,7 +27,7 @@ interface ProfileRow { id: string; full_name: string | null; first_name: string 
 interface PaymentRow { id: string; amount: number; due_date: string; paid_at: string | null; status: string; method: string | null; }
 
 export default function LandlordLeaseDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [lease, setLease] = useState<LeaseRow | null>(null);
@@ -37,10 +38,10 @@ export default function LandlordLeaseDetail() {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!slug) return;
     (async () => {
       setLoading(true);
-      const { data: l } = await supabase.from("leases").select("*").eq("id", id).maybeSingle();
+      const { data: l } = await supabase.from("leases").select("*").eq("public_slug", slug).maybeSingle();
       if (!l) { setLoading(false); return; }
       setLease(l as LeaseRow);
 
@@ -48,11 +49,11 @@ export default function LandlordLeaseDetail() {
         supabase.from("units").select("id,label,bedrooms,bathrooms,property_id").eq("id", l.unit_id).maybeSingle(),
         supabase.from("profiles").select("id,full_name,first_name,last_name,email,phone_e164").eq("id", l.tenant_id).maybeSingle(),
         supabase.from("leases").select("*").eq("unit_id", l.unit_id).order("start_date", { ascending: false }),
-        supabase.from("payments").select("id,amount,due_date,paid_at,status,method").eq("lease_id", id).order("due_date", { ascending: false }),
+        supabase.from("payments").select("id,amount,due_date,paid_at,status,method").eq("lease_id", l.id).order("due_date", { ascending: false }),
       ]);
       setUnit(u as UnitRow | null);
       setTenant(t as ProfileRow | null);
-      setOtherLeases(((history ?? []) as LeaseRow[]).filter(x => x.id !== id));
+      setOtherLeases(((history ?? []) as LeaseRow[]).filter(x => x.id !== l.id));
       setPayments((pays ?? []) as PaymentRow[]);
 
       if (u?.property_id) {
@@ -61,7 +62,7 @@ export default function LandlordLeaseDetail() {
       }
       setLoading(false);
     })();
-  }, [id]);
+  }, [slug]);
 
   async function setStatus(next: "active" | "ended" | "draft") {
     if (!lease) return;
@@ -105,7 +106,7 @@ export default function LandlordLeaseDetail() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <StatusPill tone={tone}>{lease.status[0].toUpperCase() + lease.status.slice(1)}</StatusPill>
-          <Button size="sm" variant="outline" onClick={() => navigate(`/landlord/leases/${lease.id}/edit`)}>
+          <Button size="sm" variant="outline" onClick={() => navigate(`/landlord/leases/${lease.public_slug}/edit`)}>
             <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
           </Button>
           <Button size="sm" variant="outline" onClick={() => navigate(`/landlord/leases/new?unit_id=${lease.unit_id}&tenant_id=${lease.tenant_id}`)}>
@@ -209,7 +210,7 @@ export default function LandlordLeaseDetail() {
                         <td className="py-3 text-foreground">{shortDate(o.start_date)} – {shortDate(o.end_date)}</td>
                         <td className="py-3"><StatusPill tone={o.status === "active" ? "success" : "muted"}>{o.status}</StatusPill></td>
                         <td className="py-3 text-right font-mono text-foreground">{money(Number(o.rent_amount))}</td>
-                        <td className="py-3 text-right"><Link to={`/landlord/leases/${o.id}`} className="text-primary text-xs hover:underline">View</Link></td>
+                        <td className="py-3 text-right"><Link to={`/landlord/leases/${o.public_slug}`} className="text-primary text-xs hover:underline">View</Link></td>
                       </tr>
                     ))}
                   </tbody>
