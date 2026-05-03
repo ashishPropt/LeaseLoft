@@ -80,6 +80,8 @@ export default function AdminRequests() {
   const [resendId, setResendId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [creatorName, setCreatorName] = useState("Admin");
+  const [deleteTarget, setDeleteTarget] = useState<InviteRequest | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function loadEmailStatuses(reqs: InviteRequest[]) {
     const ids = reqs.filter((r) => r.status !== "pending").map((r) => r.id);
