@@ -197,10 +197,27 @@ export default function LandlordPayments() {
       <p className="text-muted-foreground mt-1.5 text-sm">All rent payments across your portfolio.</p>
 
       <div className="flex flex-wrap items-center gap-3 mt-6">
-        <div className="relative flex-1 min-w-64">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search tenant or unit" value={q} onChange={e => setQ(e.target.value)} />
-        </div>
+        <Select value={tenantFilter} onValueChange={v => { setTenantFilter(v); setUnitFilter("all"); setLeaseFilter("all"); }}>
+          <SelectTrigger className="w-56"><SelectValue placeholder="Tenant" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All tenants</SelectItem>
+            {tenantOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={unitFilter} onValueChange={v => { setUnitFilter(v); setLeaseFilter("all"); }}>
+          <SelectTrigger className="w-56"><SelectValue placeholder="Unit" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All units</SelectItem>
+            {unitOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={leaseFilter} onValueChange={setLeaseFilter}>
+          <SelectTrigger className="w-64"><SelectValue placeholder="Lease" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All leases</SelectItem>
+            {leaseOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Select value={filter} onValueChange={v => setFilter(v as any)}>
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
