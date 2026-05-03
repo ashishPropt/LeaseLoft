@@ -25,6 +25,7 @@ import AdminRequests from "./pages/admin/Requests.tsx";
 import AdminProperties from "./pages/admin/Properties.tsx";
 import RequestInvite from "./pages/RequestInvite.tsx";
 import Legal from "./pages/Legal.tsx";
+import Unsubscribe from "./pages/Unsubscribe.tsx";
 import TenantDashboard from "./pages/tenant/Dashboard.tsx";
 import TenantLease from "./pages/tenant/Lease.tsx";
 import TenantPayRent from "./pages/tenant/PayRent.tsx";
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/privacy" element={<Legal />} />
           <Route path="/terms" element={<Legal />} />
+          <Route path="/unsubscribe" element={<Unsubscribe />} />
 
           <Route path="/landlord" element={<LandlordDashboard />} />
           <Route path="/landlord/payments" element={<LandlordPayments />} />
