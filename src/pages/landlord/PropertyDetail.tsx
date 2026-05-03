@@ -83,11 +83,11 @@ export default function LandlordPropertyDetail() {
 
   async function saveUnit(e: React.FormEvent) {
     e.preventDefault();
-    if (!id) return;
+    if (!property) return;
     if (!form.label.trim()) { toast.error("Unit label is required."); return; }
     setSaving(true);
     const payload = {
-      property_id: id,
+      property_id: property.id,
       label: form.label.trim(),
       bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
       bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
