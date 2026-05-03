@@ -91,10 +91,16 @@ export default function LandlordPayments() {
       const lease = leaseById.get(p.lease_id);
       const unit = lease ? unitById.get(lease.unit_id) : undefined;
       const prop = unit ? propById.get(unit.property_id) : undefined;
+      const tenantName = tenantById.get(lease?.tenant_id ?? "") ?? "Tenant";
+      const unitLabel = `${prop?.name ?? "—"} · ${unit?.label ?? ""}`;
       return {
         id: p.id,
-        tenant: tenantById.get(lease?.tenant_id ?? "") ?? "Tenant",
-        unit: `${prop?.name ?? "—"} · ${unit?.label ?? ""}`,
+        tenant: tenantName,
+        tenantId: lease?.tenant_id ?? "",
+        unit: unitLabel,
+        unitId: lease?.unit_id ?? "",
+        leaseId: lease?.id ?? "",
+        leaseLabel: `${tenantName} · ${unitLabel}`,
         due: p.due_date,
         paid: p.paid_at,
         amount: Number(p.amount),
@@ -107,11 +113,40 @@ export default function LandlordPayments() {
 
   useEffect(() => { load(); }, []);
 
+  const tenantOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    rows.forEach(r => { if (r.tenantId) m.set(r.tenantId, r.tenant); });
+    return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows]);
+
+  const unitOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    rows.forEach(r => {
+      if (!r.unitId) return;
+      if (tenantFilter !== "all" && r.tenantId !== tenantFilter) return;
+      m.set(r.unitId, r.unit);
+    });
+    return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows, tenantFilter]);
+
+  const leaseOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    rows.forEach(r => {
+      if (!r.leaseId) return;
+      if (tenantFilter !== "all" && r.tenantId !== tenantFilter) return;
+      if (unitFilter !== "all" && r.unitId !== unitFilter) return;
+      m.set(r.leaseId, r.leaseLabel);
+    });
+    return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows, tenantFilter, unitFilter]);
+
   const filtered = useMemo(() => rows.filter(r => {
     if (filter !== "all" && r.status !== filter) return false;
-    if (q && !`${r.tenant} ${r.unit}`.toLowerCase().includes(q.toLowerCase())) return false;
+    if (tenantFilter !== "all" && r.tenantId !== tenantFilter) return false;
+    if (unitFilter !== "all" && r.unitId !== unitFilter) return false;
+    if (leaseFilter !== "all" && r.leaseId !== leaseFilter) return false;
     return true;
-  }), [rows, q, filter]);
+  }), [rows, filter, tenantFilter, unitFilter, leaseFilter]);
 
   const openEdit = (r: Row) => {
     setEditing(r);
