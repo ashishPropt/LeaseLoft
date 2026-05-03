@@ -39,8 +39,8 @@ export const LandlordLayout = ({ crumbs, children }: { crumbs: string[]; childre
       <div className="min-h-screen flex bg-muted/40">
         <AppSidebar role="landlord" items={items} user={user} />
         <div className="flex-1 flex flex-col min-w-0">
-          <PageHeader crumbs={["Landlord", ...crumbs]} user={user} />
-          <main className="flex-1 p-8 overflow-x-auto">{children}</main>
+          <PageHeader crumbs={["Landlord", ...crumbs]} user={user} role="landlord" navItems={items} />
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-auto">{children}</main>
         </div>
       </div>
     </RequireAuth>
