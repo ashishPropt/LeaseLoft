@@ -143,7 +143,8 @@ export default function TenantPayRent() {
           <div className="space-y-5 mt-5 max-w-md">
             <div>
               <Label>Amount (USD)</Label>
-              <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
+              <Input type="number" step="0.01" value={amount} readOnly disabled />
+              <p className="text-xs text-muted-foreground mt-1.5">Partial payments are not allowed. The full outstanding amount will be charged.</p>
             </div>
 
             <div>
