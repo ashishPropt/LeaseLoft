@@ -95,6 +95,15 @@ export default function AdminRequests() {
     if (updErr) {
       toast({ title: "Invite created but request not updated", description: updErr.message, variant: "destructive" });
     } else {
+      // Send approval email with invite code
+      supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "invite-request-approved",
+          recipientEmail: req.email,
+          idempotencyKey: `invite-approved-${req.id}`,
+          templateData: { firstName: req.first_name, inviteCode: code, requestedRole: req.requested_role },
+        },
+      }).catch((e) => console.warn("approval email failed", e));
       toast({ title: "Request approved", description: `Invite ${code} created for ${req.email}.` });
     }
     load();
@@ -114,7 +123,17 @@ export default function AdminRequests() {
       .eq("id", req.id);
     setBusyId(null);
     if (error) toast({ title: "Could not reject", description: error.message, variant: "destructive" });
-    else toast({ title: "Request rejected" });
+    else {
+      supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "invite-request-rejected",
+          recipientEmail: req.email,
+          idempotencyKey: `invite-rejected-${req.id}`,
+          templateData: { firstName: req.first_name },
+        },
+      }).catch((e) => console.warn("rejection email failed", e));
+      toast({ title: "Request rejected" });
+    }
     load();
   }
 
