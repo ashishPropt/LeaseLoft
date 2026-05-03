@@ -64,10 +64,10 @@ Deno.serve(async (req) => {
       return json({ error: 'Human verification failed. Please try again.' }, 400);
     }
 
-    const sb = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const sb = createClient(supabaseUrl, serviceKey);
 
     const { error } = await sb.from('invite_requests').insert({
       first_name,
