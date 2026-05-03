@@ -136,7 +136,7 @@ export default function LandlordDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-8">
         <StatCard label={`Collected (${new Date().toLocaleString("en-US",{month:"long"})})`} value={money(data.collected)} hint={<StatusPill tone="success">{pct}% of expected</StatusPill>} />
-        <StatCard label="Outstanding" value={money(data.outstanding)} hint={<span className="text-muted-foreground">{data.failed + data.pending} tenants late</span>} />
+        <StatCard label="Outstanding" value={money(data.outstanding)} valueClassName={data.outstanding > 0 ? "text-destructive" : undefined} hint={<span className="text-muted-foreground">{data.failed + data.pending} tenants late</span>} />
         <StatCard label="Monthly expected" value={money(data.expected)} hint={<span className="text-muted-foreground">Across {data.occupied} active leases</span>} />
         <StatCard label="Occupancy" value={`${data.totalUnits > 0 ? Math.round((data.occupied / data.totalUnits) * 100) : 0}%`} hint={<span className="text-muted-foreground">{data.occupied} / {data.totalUnits} units</span>} />
       </div>
