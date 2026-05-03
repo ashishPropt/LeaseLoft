@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
-import { Check, X, Copy, Mail, RefreshCw, AlertCircle } from "lucide-react";
+import { Check, X, Copy, Mail, RefreshCw, AlertCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatusPill } from "@/components/layout/StatusPill";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { shortDate } from "@/lib/format";
 
@@ -76,6 +80,8 @@ export default function AdminRequests() {
   const [resendId, setResendId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [creatorName, setCreatorName] = useState("Admin");
+  const [deleteTarget, setDeleteTarget] = useState<InviteRequest | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function loadEmailStatuses(reqs: InviteRequest[]) {
     const ids = reqs.filter((r) => r.status !== "pending").map((r) => r.id);
@@ -199,6 +205,20 @@ export default function AdminRequests() {
     }
   }
 
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await supabase.from("invite_requests").delete().eq("id", deleteTarget.id);
+    setDeleting(false);
+    if (error) {
+      toast({ title: "Could not delete", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Request deleted" });
+      setDeleteTarget(null);
+      load();
+    }
+  }
+
   async function copyCode(code: string) {
     await navigator.clipboard.writeText(code);
     setCopied(code);
@@ -309,18 +329,18 @@ export default function AdminRequests() {
                     )}
                   </td>
                   <td className="px-6 py-3 text-right whitespace-nowrap">
-                    {r.status === "pending" ? (
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline" onClick={() => reject(r)} disabled={busyId === r.id}>
-                          <X className="w-3.5 h-3.5 mr-1" /> Reject
-                        </Button>
-                        <Button size="sm" onClick={() => approve(r)} disabled={busyId === r.id}>
-                          <Check className="w-3.5 h-3.5 mr-1" />
-                          {busyId === r.id ? "Approving…" : "Approve"}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex justify-end items-center gap-2">
+                    <div className="flex justify-end items-center gap-2">
+                      {r.status === "pending" ? (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => reject(r)} disabled={busyId === r.id}>
+                            <X className="w-3.5 h-3.5 mr-1" /> Reject
+                          </Button>
+                          <Button size="sm" onClick={() => approve(r)} disabled={busyId === r.id}>
+                            <Check className="w-3.5 h-3.5 mr-1" />
+                            {busyId === r.id ? "Approving…" : "Approve"}
+                          </Button>
+                        </>
+                      ) : (
                         <Button
                           size="sm"
                           variant="outline"
@@ -331,8 +351,17 @@ export default function AdminRequests() {
                           <RefreshCw className={`w-3.5 h-3.5 mr-1 ${resendId === r.id ? "animate-spin" : ""}`} />
                           {resendId === r.id ? "Sending…" : "Resend email"}
                         </Button>
-                      </div>
-                    )}
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setDeleteTarget(r)}
+                        title="Delete request"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -340,6 +369,27 @@ export default function AdminRequests() {
           </tbody>
         </table>
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete invite request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the request from {deleteTarget?.first_name} {deleteTarget?.last_name} ({deleteTarget?.email}). Any invite code already issued is not affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 }
