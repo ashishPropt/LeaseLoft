@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, X, Copy, Mail } from "lucide-react";
+import { Check, X, Copy, Mail, RefreshCw, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatusPill } from "@/components/layout/StatusPill";
@@ -24,19 +24,74 @@ interface InviteRequest {
   reviewed_at: string | null;
 }
 
+interface EmailStatus {
+  template: "approved" | "rejected";
+  status: string;
+  error: string | null;
+  at: string;
+}
+
 function makeCode(role: Role) {
   const r = Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
   const prefix = role === "landlord" ? "LL" : "TN";
   return `${prefix}-2026-${r}`;
 }
 
+async function sendApprovalEmail(req: InviteRequest, code: string, attempt = 0) {
+  const idempotencyKey =
+    attempt === 0 ? `invite-approved-${req.id}` : `invite-approved-${req.id}-r${attempt}`;
+  return supabase.functions.invoke("send-transactional-email", {
+    body: {
+      templateName: "invite-request-approved",
+      recipientEmail: req.email,
+      idempotencyKey,
+      templateData: {
+        firstName: req.first_name,
+        inviteCode: code,
+        requestedRole: req.requested_role,
+      },
+    },
+  });
+}
+
+async function sendRejectionEmail(req: InviteRequest, attempt = 0) {
+  const idempotencyKey =
+    attempt === 0 ? `invite-rejected-${req.id}` : `invite-rejected-${req.id}-r${attempt}`;
+  return supabase.functions.invoke("send-transactional-email", {
+    body: {
+      templateName: "invite-request-rejected",
+      recipientEmail: req.email,
+      idempotencyKey,
+      templateData: { firstName: req.first_name },
+    },
+  });
+}
+
 export default function AdminRequests() {
   const [requests, setRequests] = useState<InviteRequest[]>([]);
+  const [emailStatuses, setEmailStatuses] = useState<Record<string, EmailStatus>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | Status>("pending");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [resendId, setResendId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [creatorName, setCreatorName] = useState("Admin");
+
+  async function loadEmailStatuses(reqs: InviteRequest[]) {
+    const ids = reqs.filter((r) => r.status !== "pending").map((r) => r.id);
+    if (ids.length === 0) {
+      setEmailStatuses({});
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke("admin-invite-email-status", {
+      body: { requestIds: ids },
+    });
+    if (error) {
+      console.warn("email status fetch failed", error);
+      return;
+    }
+    setEmailStatuses((data?.statuses as Record<string, EmailStatus>) ?? {});
+  }
 
   async function load() {
     const { data: s } = await supabase.auth.getSession();
@@ -53,8 +108,10 @@ export default function AdminRequests() {
       .select("id,first_name,last_name,email,requested_role,note,status,generated_invite_code,created_at,reviewed_at")
       .order("created_at", { ascending: false });
     if (error) toast({ title: "Failed to load requests", description: error.message, variant: "destructive" });
-    setRequests((data as InviteRequest[]) ?? []);
+    const list = (data as InviteRequest[]) ?? [];
+    setRequests(list);
     setLoading(false);
+    loadEmailStatuses(list);
   }
 
   useEffect(() => { load(); }, []);
@@ -95,15 +152,7 @@ export default function AdminRequests() {
     if (updErr) {
       toast({ title: "Invite created but request not updated", description: updErr.message, variant: "destructive" });
     } else {
-      // Send approval email with invite code
-      supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "invite-request-approved",
-          recipientEmail: req.email,
-          idempotencyKey: `invite-approved-${req.id}`,
-          templateData: { firstName: req.first_name, inviteCode: code, requestedRole: req.requested_role },
-        },
-      }).catch((e) => console.warn("approval email failed", e));
+      sendApprovalEmail(req, code).catch((e) => console.warn("approval email failed", e));
       toast({ title: "Request approved", description: `Invite ${code} created for ${req.email}.` });
     }
     load();
@@ -124,23 +173,44 @@ export default function AdminRequests() {
     setBusyId(null);
     if (error) toast({ title: "Could not reject", description: error.message, variant: "destructive" });
     else {
-      supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "invite-request-rejected",
-          recipientEmail: req.email,
-          idempotencyKey: `invite-rejected-${req.id}`,
-          templateData: { firstName: req.first_name },
-        },
-      }).catch((e) => console.warn("rejection email failed", e));
+      sendRejectionEmail(req).catch((e) => console.warn("rejection email failed", e));
       toast({ title: "Request rejected" });
     }
     load();
+  }
+
+  async function resend(req: InviteRequest) {
+    setResendId(req.id);
+    try {
+      // Use a fresh idempotency key so the queue accepts a new send
+      const attempt = Date.now();
+      const { error } =
+        req.status === "approved"
+          ? await sendApprovalEmail(req, req.generated_invite_code ?? "", attempt)
+          : await sendRejectionEmail(req, attempt);
+      if (error) throw error;
+      toast({ title: "Email resent", description: `Sent to ${req.email}.` });
+      // Give the queue a moment then refresh statuses
+      setTimeout(() => loadEmailStatuses(requests), 1500);
+    } catch (e) {
+      toast({ title: "Resend failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setResendId(null);
+    }
   }
 
   async function copyCode(code: string) {
     await navigator.clipboard.writeText(code);
     setCopied(code);
     setTimeout(() => setCopied(null), 1500);
+  }
+
+  function emailStatusTone(s?: EmailStatus): "success" | "danger" | "warning" | "muted" {
+    if (!s) return "muted";
+    if (s.status === "sent") return "success";
+    if (s.status === "pending") return "warning";
+    if (s.status === "suppressed") return "warning";
+    return "danger"; // failed, dlq, bounced, complained
   }
 
   const filtered = requests.filter((r) => filter === "all" || r.status === filter);
@@ -179,63 +249,94 @@ export default function AdminRequests() {
               <th className="text-left font-medium px-6 py-3">Note</th>
               <th className="text-left font-medium px-6 py-3">Submitted</th>
               <th className="text-left font-medium px-6 py-3">Status</th>
+              <th className="text-left font-medium px-6 py-3">Last email</th>
               <th className="px-6 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">No requests.</td></tr>
-            ) : filtered.map((r) => (
-              <tr key={r.id} className="border-t border-border align-top">
-                <td className="px-6 py-3">
-                  <div className="text-foreground font-medium">{r.first_name} {r.last_name}</div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <Mail className="w-3 h-3" /> {r.email}
-                  </div>
-                </td>
-                <td className="px-6 py-3">
-                  <StatusPill tone={r.requested_role === "landlord" ? "success" : "muted"}>
-                    {r.requested_role}
-                  </StatusPill>
-                </td>
-                <td className="px-6 py-3 text-muted-foreground max-w-xs">
-                  {r.note ? <span className="line-clamp-3">{r.note}</span> : "—"}
-                </td>
-                <td className="px-6 py-3 text-muted-foreground">{shortDate(r.created_at)}</td>
-                <td className="px-6 py-3">
-                  <StatusPill tone={r.status === "approved" ? "success" : r.status === "rejected" ? "danger" : "info"}>
-                    {r.status}
-                  </StatusPill>
-                  {r.status === "approved" && r.generated_invite_code && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <code className="font-mono text-xs px-2 py-1 rounded bg-muted">{r.generated_invite_code}</code>
-                      <Button variant="ghost" size="sm" onClick={() => copyCode(r.generated_invite_code!)}>
-                        {copied === r.generated_invite_code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      </Button>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">No requests.</td></tr>
+            ) : filtered.map((r) => {
+              const es = emailStatuses[r.id];
+              return (
+                <tr key={r.id} className="border-t border-border align-top">
+                  <td className="px-6 py-3">
+                    <div className="text-foreground font-medium">{r.first_name} {r.last_name}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Mail className="w-3 h-3" /> {r.email}
                     </div>
-                  )}
-                </td>
-                <td className="px-6 py-3 text-right whitespace-nowrap">
-                  {r.status === "pending" ? (
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="outline" onClick={() => reject(r)} disabled={busyId === r.id}>
-                        <X className="w-3.5 h-3.5 mr-1" /> Reject
-                      </Button>
-                      <Button size="sm" onClick={() => approve(r)} disabled={busyId === r.id}>
-                        <Check className="w-3.5 h-3.5 mr-1" />
-                        {busyId === r.id ? "Approving…" : "Approve"}
-                      </Button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      {r.reviewed_at ? shortDate(r.reviewed_at) : ""}
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-6 py-3">
+                    <StatusPill tone={r.requested_role === "landlord" ? "success" : "muted"}>
+                      {r.requested_role}
+                    </StatusPill>
+                  </td>
+                  <td className="px-6 py-3 text-muted-foreground max-w-xs">
+                    {r.note ? <span className="line-clamp-3">{r.note}</span> : "—"}
+                  </td>
+                  <td className="px-6 py-3 text-muted-foreground">{shortDate(r.created_at)}</td>
+                  <td className="px-6 py-3">
+                    <StatusPill tone={r.status === "approved" ? "success" : r.status === "rejected" ? "danger" : "info"}>
+                      {r.status}
+                    </StatusPill>
+                    {r.status === "approved" && r.generated_invite_code && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <code className="font-mono text-xs px-2 py-1 rounded bg-muted">{r.generated_invite_code}</code>
+                        <Button variant="ghost" size="sm" onClick={() => copyCode(r.generated_invite_code!)}>
+                          {copied === r.generated_invite_code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        </Button>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-3">
+                    {r.status === "pending" ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : es ? (
+                      <div className="space-y-1">
+                        <StatusPill tone={emailStatusTone(es)}>{es.status}</StatusPill>
+                        <div className="text-[11px] text-muted-foreground">{shortDate(es.at)}</div>
+                        {es.error && (
+                          <div className="text-[11px] text-destructive flex items-start gap-1 max-w-[200px]">
+                            <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                            <span className="line-clamp-2">{es.error}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No record</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-3 text-right whitespace-nowrap">
+                    {r.status === "pending" ? (
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" onClick={() => reject(r)} disabled={busyId === r.id}>
+                          <X className="w-3.5 h-3.5 mr-1" /> Reject
+                        </Button>
+                        <Button size="sm" onClick={() => approve(r)} disabled={busyId === r.id}>
+                          <Check className="w-3.5 h-3.5 mr-1" />
+                          {busyId === r.id ? "Approving…" : "Approve"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-end items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => resend(r)}
+                          disabled={resendId === r.id || (r.status === "approved" && !r.generated_invite_code)}
+                          title={r.status === "approved" ? "Resend approval email" : "Resend rejection email"}
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 mr-1 ${resendId === r.id ? "animate-spin" : ""}`} />
+                          {resendId === r.id ? "Sending…" : "Resend email"}
+                        </Button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
