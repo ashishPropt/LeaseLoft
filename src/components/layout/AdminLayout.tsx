@@ -36,8 +36,8 @@ export const AdminLayout = ({ crumbs, children }: { crumbs: string[]; children: 
       <div className="min-h-screen flex bg-muted/40">
         <AppSidebar role="admin" items={items} user={user} />
         <div className="flex-1 flex flex-col min-w-0">
-          <PageHeader crumbs={["Admin", ...crumbs]} user={user} />
-          <main className="flex-1 p-8 overflow-x-auto">{children}</main>
+          <PageHeader crumbs={["Admin", ...crumbs]} user={user} role="admin" navItems={items} />
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-auto">{children}</main>
         </div>
       </div>
     </RequireAuth>
