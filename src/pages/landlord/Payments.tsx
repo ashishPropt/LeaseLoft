@@ -23,6 +23,8 @@ interface Row {
   amount: number;
   method: string | null;
   status: string;
+  leaseStatus: string;
+  isLate: boolean;
 }
 
 interface AuditEntry {
