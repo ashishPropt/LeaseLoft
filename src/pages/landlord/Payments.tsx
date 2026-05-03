@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, History } from "lucide-react";
+import { History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LandlordLayout } from "@/components/layout/LandlordLayout";
 import { StatusPill } from "@/components/layout/StatusPill";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +16,11 @@ import { money, shortDate } from "@/lib/format";
 interface Row {
   id: string;
   tenant: string;
+  tenantId: string;
   unit: string;
+  unitId: string;
+  leaseId: string;
+  leaseLabel: string;
   due: string;
   paid: string | null;
   amount: number;
@@ -39,7 +42,9 @@ interface AuditEntry {
 export default function LandlordPayments() {
   const { toast } = useToast();
   const [rows, setRows] = useState<Row[]>([]);
-  const [q, setQ] = useState("");
+  const [tenantFilter, setTenantFilter] = useState<string>("all");
+  const [unitFilter, setUnitFilter] = useState<string>("all");
+  const [leaseFilter, setLeaseFilter] = useState<string>("all");
   const [filter, setFilter] = useState<"all" | "paid" | "pending" | "failed">("all");
   const [loading, setLoading] = useState(true);
 
@@ -86,10 +91,16 @@ export default function LandlordPayments() {
       const lease = leaseById.get(p.lease_id);
       const unit = lease ? unitById.get(lease.unit_id) : undefined;
       const prop = unit ? propById.get(unit.property_id) : undefined;
+      const tenantName = tenantById.get(lease?.tenant_id ?? "") ?? "Tenant";
+      const unitLabel = `${prop?.name ?? "—"} · ${unit?.label ?? ""}`;
       return {
         id: p.id,
-        tenant: tenantById.get(lease?.tenant_id ?? "") ?? "Tenant",
-        unit: `${prop?.name ?? "—"} · ${unit?.label ?? ""}`,
+        tenant: tenantName,
+        tenantId: lease?.tenant_id ?? "",
+        unit: unitLabel,
+        unitId: lease?.unit_id ?? "",
+        leaseId: lease?.id ?? "",
+        leaseLabel: `${tenantName} · ${unitLabel}`,
         due: p.due_date,
         paid: p.paid_at,
         amount: Number(p.amount),
@@ -102,11 +113,40 @@ export default function LandlordPayments() {
 
   useEffect(() => { load(); }, []);
 
+  const tenantOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    rows.forEach(r => { if (r.tenantId) m.set(r.tenantId, r.tenant); });
+    return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows]);
+
+  const unitOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    rows.forEach(r => {
+      if (!r.unitId) return;
+      if (tenantFilter !== "all" && r.tenantId !== tenantFilter) return;
+      m.set(r.unitId, r.unit);
+    });
+    return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows, tenantFilter]);
+
+  const leaseOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    rows.forEach(r => {
+      if (!r.leaseId) return;
+      if (tenantFilter !== "all" && r.tenantId !== tenantFilter) return;
+      if (unitFilter !== "all" && r.unitId !== unitFilter) return;
+      m.set(r.leaseId, r.leaseLabel);
+    });
+    return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows, tenantFilter, unitFilter]);
+
   const filtered = useMemo(() => rows.filter(r => {
     if (filter !== "all" && r.status !== filter) return false;
-    if (q && !`${r.tenant} ${r.unit}`.toLowerCase().includes(q.toLowerCase())) return false;
+    if (tenantFilter !== "all" && r.tenantId !== tenantFilter) return false;
+    if (unitFilter !== "all" && r.unitId !== unitFilter) return false;
+    if (leaseFilter !== "all" && r.leaseId !== leaseFilter) return false;
     return true;
-  }), [rows, q, filter]);
+  }), [rows, filter, tenantFilter, unitFilter, leaseFilter]);
 
   const openEdit = (r: Row) => {
     setEditing(r);
@@ -157,10 +197,27 @@ export default function LandlordPayments() {
       <p className="text-muted-foreground mt-1.5 text-sm">All rent payments across your portfolio.</p>
 
       <div className="flex flex-wrap items-center gap-3 mt-6">
-        <div className="relative flex-1 min-w-64">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search tenant or unit" value={q} onChange={e => setQ(e.target.value)} />
-        </div>
+        <Select value={tenantFilter} onValueChange={v => { setTenantFilter(v); setUnitFilter("all"); setLeaseFilter("all"); }}>
+          <SelectTrigger className="w-56"><SelectValue placeholder="Tenant" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All tenants</SelectItem>
+            {tenantOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={unitFilter} onValueChange={v => { setUnitFilter(v); setLeaseFilter("all"); }}>
+          <SelectTrigger className="w-56"><SelectValue placeholder="Unit" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All units</SelectItem>
+            {unitOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={leaseFilter} onValueChange={setLeaseFilter}>
+          <SelectTrigger className="w-64"><SelectValue placeholder="Lease" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All leases</SelectItem>
+            {leaseOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Select value={filter} onValueChange={v => setFilter(v as any)}>
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
