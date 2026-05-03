@@ -124,9 +124,9 @@ export default function LandlordDashboard() {
 
   return (
     <LandlordLayout crumbs={["Dashboard"]}>
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Portfolio overview</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">Portfolio overview</h1>
           <p className="text-muted-foreground mt-1.5 text-sm">{data.propertyName} · {data.occupied} of {data.totalUnits} units occupied</p>
         </div>
         <div className="flex gap-2">
