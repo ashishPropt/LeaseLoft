@@ -68,7 +68,7 @@ export default function LandlordPayments() {
 
     const { data: leases } = await supabase
       .from("leases")
-      .select("id,tenant_id,unit_id")
+      .select("id,tenant_id,unit_id,status")
       .eq("landlord_id", uid);
 
     const leaseIds = (leases ?? []).map(l => l.id);
