@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const paymentId = String(body.payment_id ?? '');
     const paymentMethodId = String(body.payment_method_id ?? '');
-    const overrideAmountCents = body.amount_cents ? Number(body.amount_cents) : null;
+    // Partial payments are not allowed: always charge the full payment.amount from DB.
     if (!paymentId || !paymentMethodId) return json({ error: 'Missing payment_id or payment_method_id' }, 400);
 
     const sb = serviceClient();
