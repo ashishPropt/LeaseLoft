@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "tenants insert own payments" ON public.payments;
