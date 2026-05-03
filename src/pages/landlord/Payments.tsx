@@ -20,6 +20,7 @@ interface Row {
   unit: string;
   unitId: string;
   leaseId: string;
+  leaseStatus: "active" | "inactive";
   leaseLabel: string;
   due: string;
   paid: string | null;
