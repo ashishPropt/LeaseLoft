@@ -230,24 +230,6 @@ export default function LandlordLeaseDetail() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="font-semibold text-foreground">Recent payments</h2>
-            {payments.length === 0 ? (
-              <p className="text-sm text-muted-foreground mt-3">No payments yet.</p>
-            ) : (
-              <ul className="mt-4 space-y-3 text-sm">
-                {payments.slice(0, 6).map(p => (
-                  <li key={p.id} className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-foreground">{shortDate(p.due_date)}</div>
-                      <div className="text-xs text-muted-foreground capitalize">{p.method ?? "—"} · {p.status}</div>
-                    </div>
-                    <div className="font-mono font-medium text-foreground">{money(Number(p.amount))}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
         </div>
       </div>
     </LandlordLayout>
