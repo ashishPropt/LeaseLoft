@@ -100,6 +100,7 @@ export default function LandlordPayments() {
         unit: unitLabel,
         unitId: lease?.unit_id ?? "",
         leaseId: lease?.id ?? "",
+        leaseStatus: (lease?.status === "active" ? "active" : "inactive") as "active" | "inactive",
         leaseLabel: `${tenantName} · ${unitLabel}`,
         due: p.due_date,
         paid: p.paid_at,
