@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       || profile?.email
       || 'Tenant';
 
-    const amountCents = overrideAmountCents ?? Math.round(Number(payment.amount) * 100);
+    const amountCents = Math.round(Number(payment.amount) * 100);
 
     const provider = getProvider();
     const result = await provider.initiatePayment({
