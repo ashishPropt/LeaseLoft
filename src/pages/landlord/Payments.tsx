@@ -20,6 +20,7 @@ interface Row {
   unit: string;
   unitId: string;
   leaseId: string;
+  leaseStatus: "active" | "inactive";
   leaseLabel: string;
   due: string;
   paid: string | null;
@@ -68,7 +69,7 @@ export default function LandlordPayments() {
 
     const { data: leases } = await supabase
       .from("leases")
-      .select("id,tenant_id,unit_id")
+      .select("id,tenant_id,unit_id,status")
       .eq("landlord_id", uid);
 
     const leaseIds = (leases ?? []).map(l => l.id);
@@ -100,6 +101,7 @@ export default function LandlordPayments() {
         unit: unitLabel,
         unitId: lease?.unit_id ?? "",
         leaseId: lease?.id ?? "",
+        leaseStatus: (lease?.status === "active" ? "active" : "inactive") as "active" | "inactive",
         leaseLabel: `${tenantName} · ${unitLabel}`,
         due: p.due_date,
         paid: p.paid_at,
@@ -129,22 +131,11 @@ export default function LandlordPayments() {
     return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [rows, tenantFilter]);
 
-  const leaseOptions = useMemo(() => {
-    const m = new Map<string, string>();
-    rows.forEach(r => {
-      if (!r.leaseId) return;
-      if (tenantFilter !== "all" && r.tenantId !== tenantFilter) return;
-      if (unitFilter !== "all" && r.unitId !== unitFilter) return;
-      m.set(r.leaseId, r.leaseLabel);
-    });
-    return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [rows, tenantFilter, unitFilter]);
-
   const filtered = useMemo(() => rows.filter(r => {
     if (filter !== "all" && r.status !== filter) return false;
     if (tenantFilter !== "all" && r.tenantId !== tenantFilter) return false;
     if (unitFilter !== "all" && r.unitId !== unitFilter) return false;
-    if (leaseFilter !== "all" && r.leaseId !== leaseFilter) return false;
+    if (leaseFilter !== "all" && r.leaseStatus !== leaseFilter) return false;
     return true;
   }), [rows, filter, tenantFilter, unitFilter, leaseFilter]);
 
@@ -212,10 +203,11 @@ export default function LandlordPayments() {
           </SelectContent>
         </Select>
         <Select value={leaseFilter} onValueChange={setLeaseFilter}>
-          <SelectTrigger className="w-64"><SelectValue placeholder="Lease" /></SelectTrigger>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Lease" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All leases</SelectItem>
-            {leaseOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filter} onValueChange={v => setFilter(v as any)}>
