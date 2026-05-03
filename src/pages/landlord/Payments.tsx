@@ -23,6 +23,8 @@ interface Row {
   amount: number;
   method: string | null;
   status: string;
+  leaseStatus: string;
+  isLate: boolean;
 }
 
 interface AuditEntry {
@@ -40,7 +42,7 @@ export default function LandlordPayments() {
   const { toast } = useToast();
   const [rows, setRows] = useState<Row[]>([]);
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "paid" | "pending" | "failed">("all");
+  const [filter, setFilter] = useState<"all" | "active" | "paid" | "pending" | "failed">("active");
   const [loading, setLoading] = useState(true);
 
   // Edit dialog state
@@ -63,7 +65,7 @@ export default function LandlordPayments() {
 
     const { data: leases } = await supabase
       .from("leases")
-      .select("id,tenant_id,unit_id")
+      .select("id,tenant_id,unit_id,status")
       .eq("landlord_id", uid);
 
     const leaseIds = (leases ?? []).map(l => l.id);
@@ -82,10 +84,14 @@ export default function LandlordPayments() {
     const tenantById = new Map((profiles ?? []).map(p => [p.id, p.full_name || `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() || p.email]));
     const leaseById = new Map((leases ?? []).map(l => [l.id, l]));
 
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+
     setRows((pays ?? []).map(p => {
       const lease = leaseById.get(p.lease_id);
       const unit = lease ? unitById.get(lease.unit_id) : undefined;
       const prop = unit ? propById.get(unit.property_id) : undefined;
+      const dueDate = new Date(p.due_date);
+      const isLate = (p.status === "pending" || p.status === "failed") && dueDate < today;
       return {
         id: p.id,
         tenant: tenantById.get(lease?.tenant_id ?? "") ?? "Tenant",
@@ -95,6 +101,8 @@ export default function LandlordPayments() {
         amount: Number(p.amount),
         method: p.method,
         status: p.status,
+        leaseStatus: lease?.status ?? "",
+        isLate,
       };
     }));
     setLoading(false);
@@ -103,7 +111,9 @@ export default function LandlordPayments() {
   useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => rows.filter(r => {
-    if (filter !== "all" && r.status !== filter) return false;
+    if (filter === "active") {
+      if (r.leaseStatus !== "active") return false;
+    } else if (filter !== "all" && r.status !== filter) return false;
     if (q && !`${r.tenant} ${r.unit}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   }), [rows, q, filter]);
@@ -162,8 +172,9 @@ export default function LandlordPayments() {
           <Input className="pl-9" placeholder="Search tenant or unit" value={q} onChange={e => setQ(e.target.value)} />
         </div>
         <Select value={filter} onValueChange={v => setFilter(v as any)}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="active">Active leases only</SelectItem>
             <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="paid">Paid</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
@@ -192,18 +203,18 @@ export default function LandlordPayments() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">No payments match these filters.</td></tr>
             ) : filtered.map(r => (
-              <tr key={r.id} className="border-t border-border">
-                <td className="px-6 py-4 font-medium text-foreground">{r.tenant}</td>
-                <td className="px-6 py-4 text-muted-foreground">{r.unit}</td>
-                <td className="px-6 py-4 text-muted-foreground">{shortDate(r.due)}</td>
+              <tr key={r.id} className={`border-t border-border ${r.isLate ? "bg-destructive/10 hover:bg-destructive/15" : ""}`}>
+                <td className={`px-6 py-4 font-medium ${r.isLate ? "text-destructive" : "text-foreground"}`}>{r.tenant}</td>
+                <td className={`px-6 py-4 ${r.isLate ? "text-destructive/90" : "text-muted-foreground"}`}>{r.unit}</td>
+                <td className={`px-6 py-4 ${r.isLate ? "text-destructive font-medium" : "text-muted-foreground"}`}>{shortDate(r.due)}</td>
                 <td className="px-6 py-4 text-muted-foreground">{r.paid ? shortDate(r.paid) : "—"}</td>
                 <td className="px-6 py-4 text-muted-foreground">{r.method ?? "—"}</td>
                 <td className="px-6 py-4">
-                  <StatusPill tone={r.status === "paid" ? "success" : r.status === "pending" ? "warning" : r.status === "failed" ? "danger" : "muted"}>
-                    {r.status[0].toUpperCase() + r.status.slice(1)}
+                  <StatusPill tone={r.isLate ? "danger" : r.status === "paid" ? "success" : r.status === "pending" ? "warning" : r.status === "failed" ? "danger" : "muted"}>
+                    {r.isLate ? "Late" : r.status[0].toUpperCase() + r.status.slice(1)}
                   </StatusPill>
                 </td>
-                <td className="px-6 py-4 text-right font-mono font-medium text-foreground">{money(r.amount)}</td>
+                <td className={`px-6 py-4 text-right font-mono font-medium ${r.isLate ? "text-destructive" : "text-foreground"}`}>{money(r.amount)}</td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
                     {r.status === "pending" && (
