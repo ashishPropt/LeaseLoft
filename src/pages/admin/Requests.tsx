@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
-import { Check, X, Copy, Mail, RefreshCw, AlertCircle } from "lucide-react";
+import { Check, X, Copy, Mail, RefreshCw, AlertCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatusPill } from "@/components/layout/StatusPill";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { shortDate } from "@/lib/format";
 
