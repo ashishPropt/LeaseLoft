@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 interface Row {
   id: string;
+  public_slug: string;
   name: string;
   address: string;
   city: string | null;
@@ -49,7 +50,7 @@ export default function LandlordProperties() {
     setLoading(true);
     const { data: props } = await supabase
       .from("properties")
-      .select("id,name,address,city,state,zip")
+      .select("id,public_slug,name,address,city,state,zip")
       .eq("owner_id", userId)
       .order("name", { ascending: true });
     const ids = (props ?? []).map(p => p.id);
@@ -197,7 +198,7 @@ export default function LandlordProperties() {
             ) : rows.map(r => (
               <tr key={r.id} className="border-t border-border">
                 <td className="px-6 py-4 font-medium text-foreground">
-                  <Link to={`/landlord/properties/${r.id}`} className="hover:underline">{r.name}</Link>
+                  <Link to={`/landlord/properties/${r.public_slug}`} className="hover:underline">{r.name}</Link>
                 </td>
                 <td className="px-6 py-4 text-muted-foreground">
                   {[r.address, r.city, r.state, r.zip].filter(Boolean).join(", ") || "—"}
@@ -205,7 +206,7 @@ export default function LandlordProperties() {
                 <td className="px-6 py-4 text-muted-foreground">{r.unitCount}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-end gap-2">
-                    <Link to={`/landlord/properties/${r.id}`}>
+                    <Link to={`/landlord/properties/${r.public_slug}`}>
                       <Button size="sm" variant="ghost">Manage units</Button>
                     </Link>
                     <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>

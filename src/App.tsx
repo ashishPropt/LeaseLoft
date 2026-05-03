@@ -60,10 +60,10 @@ const App = () => (
           <Route path="/landlord/maintenance" element={<LandlordMaintenance />} />
           <Route path="/landlord/invite" element={<LandlordInvite />} />
           <Route path="/landlord/leases/new" element={<LandlordLeaseForm />} />
-          <Route path="/landlord/leases/:id" element={<LandlordLeaseDetail />} />
-          <Route path="/landlord/leases/:id/edit" element={<LandlordLeaseForm />} />
+          <Route path="/landlord/leases/:slug" element={<LandlordLeaseDetail />} />
+          <Route path="/landlord/leases/:slug/edit" element={<LandlordLeaseForm />} />
           <Route path="/landlord/properties" element={<LandlordProperties />} />
-          <Route path="/landlord/properties/:id" element={<LandlordPropertyDetail />} />
+          <Route path="/landlord/properties/:slug" element={<LandlordPropertyDetail />} />
 
           <Route path="/admin" element={<AdminUsers />} />
           <Route path="/admin/requests" element={<AdminRequests />} />

@@ -17,7 +17,7 @@ import { money } from "@/lib/format";
 import { toast } from "sonner";
 
 interface Property {
-  id: string; name: string; address: string;
+  id: string; public_slug: string; name: string; address: string;
   city: string | null; state: string | null; zip: string | null;
 }
 interface Unit {
@@ -35,7 +35,7 @@ interface UnitForm {
 const emptyUnit: UnitForm = { label: "", bedrooms: "", bathrooms: "", rent_amount: "" };
 
 export default function LandlordPropertyDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [property, setProperty] = useState<Property | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -46,18 +46,28 @@ export default function LandlordPropertyDetail() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   async function load() {
-    if (!id) return;
+    if (!slug) return;
     setLoading(true);
-    const [{ data: prop }, { data: u }] = await Promise.all([
-      supabase.from("properties").select("id,name,address,city,state,zip").eq("id", id).maybeSingle(),
-      supabase.from("units").select("id,label,bedrooms,bathrooms,rent_amount").eq("property_id", id).order("label", { ascending: true }),
-    ]);
+    const { data: prop } = await supabase
+      .from("properties")
+      .select("id,public_slug,name,address,city,state,zip")
+      .eq("public_slug", slug)
+      .maybeSingle();
     setProperty(prop as Property | null);
-    setUnits((u ?? []) as Unit[]);
+    if (prop) {
+      const { data: u } = await supabase
+        .from("units")
+        .select("id,label,bedrooms,bathrooms,rent_amount")
+        .eq("property_id", prop.id)
+        .order("label", { ascending: true });
+      setUnits((u ?? []) as Unit[]);
+    } else {
+      setUnits([]);
+    }
     setLoading(false);
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [slug]);
 
   function openNew() { setForm(emptyUnit); setOpen(true); }
   function openEdit(u: Unit) {
