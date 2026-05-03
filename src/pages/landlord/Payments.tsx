@@ -214,10 +214,11 @@ export default function LandlordPayments() {
           </SelectContent>
         </Select>
         <Select value={leaseFilter} onValueChange={setLeaseFilter}>
-          <SelectTrigger className="w-64"><SelectValue placeholder="Lease" /></SelectTrigger>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Lease" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All leases</SelectItem>
-            {leaseOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filter} onValueChange={v => setFilter(v as any)}>
