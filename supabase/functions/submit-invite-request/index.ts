@@ -82,6 +82,20 @@ Deno.serve(async (req) => {
       return json({ error: 'Could not save request' }, 500);
     }
 
+    // Fire-and-forget thank-you email (do not block the response on email)
+    try {
+      await sb.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'invite-request-received',
+          recipientEmail: email,
+          idempotencyKey: `invite-received-${email}-${Date.now()}`,
+          templateData: { firstName: first_name, requestedRole: requested_role },
+        },
+      });
+    } catch (e) {
+      console.warn('[submit-invite-request] email send failed', e);
+    }
+
     return json({ success: true });
   } catch (e) {
     console.error('[submit-invite-request]', e);
