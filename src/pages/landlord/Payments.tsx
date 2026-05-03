@@ -131,22 +131,11 @@ export default function LandlordPayments() {
     return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [rows, tenantFilter]);
 
-  const leaseOptions = useMemo(() => {
-    const m = new Map<string, string>();
-    rows.forEach(r => {
-      if (!r.leaseId) return;
-      if (tenantFilter !== "all" && r.tenantId !== tenantFilter) return;
-      if (unitFilter !== "all" && r.unitId !== unitFilter) return;
-      m.set(r.leaseId, r.leaseLabel);
-    });
-    return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [rows, tenantFilter, unitFilter]);
-
   const filtered = useMemo(() => rows.filter(r => {
     if (filter !== "all" && r.status !== filter) return false;
     if (tenantFilter !== "all" && r.tenantId !== tenantFilter) return false;
     if (unitFilter !== "all" && r.unitId !== unitFilter) return false;
-    if (leaseFilter !== "all" && r.leaseId !== leaseFilter) return false;
+    if (leaseFilter !== "all" && r.leaseStatus !== leaseFilter) return false;
     return true;
   }), [rows, filter, tenantFilter, unitFilter, leaseFilter]);
 
