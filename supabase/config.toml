@@ -1,25 +1,21 @@
 project_id = "mluhflymayiyhiwnbwqf"
 
-[functions.payment-webhook]
-verify_jwt = false
-
-[functions.turnstile-config]
-verify_jwt = false
-
-[functions.submit-invite-request]
-verify_jwt = false
-
-[functions.process-email-queue]
-verify_jwt = true
-
-[functions.send-transactional-email]
-verify_jwt = true
-
-[functions.preview-transactional-email]
-verify_jwt = false
-
-[functions.handle-email-unsubscribe]
-verify_jwt = false
-
-[functions.handle-email-suppression]
-verify_jwt = false
+[functions]
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.handle-email-suppression]
+    verify_jwt = false
+  [functions.handle-email-unsubscribe]
+    verify_jwt = false
+  [functions.payment-webhook]
+    verify_jwt = false
+  [functions.preview-transactional-email]
+    verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = true
+  [functions.send-transactional-email]
+    verify_jwt = true
+  [functions.submit-invite-request]
+    verify_jwt = false
+  [functions.turnstile-config]
+    verify_jwt = false
