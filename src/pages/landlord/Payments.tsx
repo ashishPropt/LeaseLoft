@@ -42,7 +42,9 @@ interface AuditEntry {
 export default function LandlordPayments() {
   const { toast } = useToast();
   const [rows, setRows] = useState<Row[]>([]);
-  const [q, setQ] = useState("");
+  const [tenantFilter, setTenantFilter] = useState<string>("all");
+  const [unitFilter, setUnitFilter] = useState<string>("all");
+  const [leaseFilter, setLeaseFilter] = useState<string>("all");
   const [filter, setFilter] = useState<"all" | "paid" | "pending" | "failed">("all");
   const [loading, setLoading] = useState(true);
 
