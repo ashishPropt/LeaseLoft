@@ -73,7 +73,7 @@ const Index = () => {
         </section>
 
         <section className="container pb-24">
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
             {[
               {
                 icon: KeyRound,
