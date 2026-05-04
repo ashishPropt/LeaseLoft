@@ -87,9 +87,7 @@ const SignIn = () => {
           .eq("id", userId);
         if (consentErr) console.error("Failed to save SMS consent", consentErr);
       }
-        await supabase.auth.signOut();
-        return;
-      }
+
 
       toast.success("Signed in");
       navigate(dest, { replace: true });
