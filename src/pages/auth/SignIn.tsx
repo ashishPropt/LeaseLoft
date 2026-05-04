@@ -89,11 +89,26 @@ const SignIn = () => {
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Signing in…" : "Sign in"}
         </Button>
-        <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground leading-relaxed">
-          <p className="mt-2">
-            We never sell or share your personal information with third parties for marketing. See our{" "}
-            <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link> and{" "}
-            <Link to="/terms" className="text-primary hover:underline">Terms of Use</Link>.
+        <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground leading-relaxed space-y-3">
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="sms-consent"
+              checked={smsConsent}
+              onCheckedChange={(v) => setSmsConsent(v === true)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="sms-consent" className="text-xs font-normal text-muted-foreground leading-relaxed cursor-pointer">
+              I agree to receive one-time passcodes via SMS for two-factor authentication (2FA) when signing in from a
+              new device. Message and data rates may apply — please check with your mobile carrier. Message frequency
+              varies based on sign-in activity. You can opt out at any time by replying <span className="font-medium">STOP</span> to any
+              message, or by disabling 2FA in your account settings. Reply <span className="font-medium">HELP</span> for assistance.
+              See our <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link> and{" "}
+              <Link to="/terms" className="text-primary hover:underline">Terms of Use</Link>.
+            </Label>
+          </div>
+          <p>
+            We never sell or share your personal information, including mobile numbers and SMS opt-in data, with third
+            parties for marketing.
           </p>
         </div>
       </form>
