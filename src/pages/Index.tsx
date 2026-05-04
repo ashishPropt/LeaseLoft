@@ -81,11 +81,6 @@ const Index = () => {
                 body: "New accounts require a single-use invite code from an admin or landlord.",
               },
               {
-                icon: ShieldCheck,
-                title: "SMS 2FA on every login",
-                body: "Two-factor authentication via SMS is required to access your data.",
-              },
-              {
                 icon: Building2,
                 title: "Built for both sides",
                 body: "Tenants pay rent and report issues. Landlords manage properties, leases, and payments. Join to learn more.",
