@@ -73,17 +73,12 @@ const Index = () => {
         </section>
 
         <section className="container pb-24">
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
             {[
               {
                 icon: KeyRound,
                 title: "Invite-only",
                 body: "New accounts require a single-use invite code from an admin or landlord.",
-              },
-              {
-                icon: ShieldCheck,
-                title: "SMS 2FA on every login",
-                body: "Two-factor authentication via SMS is required to access your data.",
               },
               {
                 icon: Building2,
