@@ -588,6 +588,9 @@ export type Database = {
           last_name: string | null
           phone_e164: string | null
           phone_verified_at: string | null
+          sms_2fa_consent: boolean
+          sms_2fa_consent_at: string | null
+          sms_2fa_consent_source: string | null
           updated_at: string
         }
         Insert: {
@@ -599,6 +602,9 @@ export type Database = {
           last_name?: string | null
           phone_e164?: string | null
           phone_verified_at?: string | null
+          sms_2fa_consent?: boolean
+          sms_2fa_consent_at?: string | null
+          sms_2fa_consent_source?: string | null
           updated_at?: string
         }
         Update: {
@@ -610,6 +616,9 @@ export type Database = {
           last_name?: string | null
           phone_e164?: string | null
           phone_verified_at?: string | null
+          sms_2fa_consent?: boolean
+          sms_2fa_consent_at?: string | null
+          sms_2fa_consent_source?: string | null
           updated_at?: string
         }
         Relationships: []

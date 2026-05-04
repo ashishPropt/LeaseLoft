@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,28 @@ const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [smsConsent, setSmsConsent] = useState(false);
+  const [initialConsent, setInitialConsent] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Prefill from existing profile when an email matching a signed-in session is present.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || cancelled) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("sms_2fa_consent")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (profile?.sms_2fa_consent) {
+        setSmsConsent(true);
+        setInitialConsent(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,6 +74,20 @@ const SignIn = () => {
         await supabase.auth.signOut();
         return;
       }
+
+      // Persist 2FA SMS consent change to profile (timestamp + source).
+      if (userId && smsConsent !== initialConsent) {
+        const { error: consentErr } = await supabase
+          .from("profiles")
+          .update({
+            sms_2fa_consent: smsConsent,
+            sms_2fa_consent_at: smsConsent ? new Date().toISOString() : null,
+            sms_2fa_consent_source: smsConsent ? "signin_page" : null,
+          })
+          .eq("id", userId);
+        if (consentErr) console.error("Failed to save SMS consent", consentErr);
+      }
+
 
       toast.success("Signed in");
       navigate(dest, { replace: true });
