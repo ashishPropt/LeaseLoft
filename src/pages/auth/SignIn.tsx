@@ -75,6 +75,22 @@ const SignIn = () => {
         return;
       }
 
+      // Persist 2FA SMS consent change to profile (timestamp + source).
+      if (userId && smsConsent !== initialConsent) {
+        const { error: consentErr } = await supabase
+          .from("profiles")
+          .update({
+            sms_2fa_consent: smsConsent,
+            sms_2fa_consent_at: smsConsent ? new Date().toISOString() : null,
+            sms_2fa_consent_source: smsConsent ? "signin_page" : null,
+          })
+          .eq("id", userId);
+        if (consentErr) console.error("Failed to save SMS consent", consentErr);
+      }
+        await supabase.auth.signOut();
+        return;
+      }
+
       toast.success("Signed in");
       navigate(dest, { replace: true });
     } finally {
