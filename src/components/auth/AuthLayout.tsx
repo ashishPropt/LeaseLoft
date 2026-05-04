@@ -32,8 +32,7 @@ export const AuthLayout = ({ title, subtitle, children, footer }: Props) => {
             <span className="text-primary-light">elevated.</span>
           </h2>
           <p className="text-primary-light/80 mt-4 text-sm leading-relaxed">
-            Invite-only access. Two-factor authentication on every sign-in. Built for landlords and tenants who care
-            about their data.
+            Invite-only access. Built for landlords and tenants who care about their data.
           </p>
         </div>
         <div className="text-xs text-primary-light/60">© {new Date().getFullYear()} LeaseLoft™</div>
