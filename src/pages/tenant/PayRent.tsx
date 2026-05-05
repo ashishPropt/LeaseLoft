@@ -176,7 +176,7 @@ export default function TenantPayRent() {
                     ))}
                   </RadioGroup>
                   <div className="mt-3">
-                    <PlaidLinkButton onLinked={refreshMethods} variant="outline" label="Link another bank" />
+                    <StripeBankLinkButton onLinked={refreshMethods} variant="outline" label="Link another bank" />
                   </div>
                 </>
               )}
