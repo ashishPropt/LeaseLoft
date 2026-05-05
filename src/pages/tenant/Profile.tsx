@@ -6,11 +6,14 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { initials } from "@/lib/format";
+import { Switch } from "@/components/ui/switch";
 
 export default function TenantProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ first_name: "", last_name: "", phone_e164: "", email: "" });
+  const [sms2fa, setSms2fa] = useState(false);
+  const [savingMfa, setSavingMfa] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -18,15 +21,37 @@ export default function TenantProfile() {
       if (!s.session) return;
       const { data: p } = await supabase
         .from("profiles")
-        .select("first_name,last_name,email,phone_e164")
+        .select("first_name,last_name,email,phone_e164,sms_2fa_consent")
         .eq("id", s.session.user.id).maybeSingle();
-      if (p) setForm({
-        first_name: p.first_name ?? "", last_name: p.last_name ?? "",
-        phone_e164: p.phone_e164 ?? "", email: p.email ?? "",
-      });
+      if (p) {
+        setForm({
+          first_name: p.first_name ?? "", last_name: p.last_name ?? "",
+          phone_e164: p.phone_e164 ?? "", email: p.email ?? "",
+        });
+        setSms2fa(!!p.sms_2fa_consent);
+      }
       setLoading(false);
     })();
   }, []);
+
+  async function toggle2fa(next: boolean) {
+    if (next && !form.phone_e164) {
+      toast({ title: "Add a phone number first", description: "We need a phone to send verification codes.", variant: "destructive" });
+      return;
+    }
+    setSavingMfa(true);
+    const { data: s } = await supabase.auth.getSession();
+    if (!s.session) { setSavingMfa(false); return; }
+    const { error } = await supabase.from("profiles").update({
+      sms_2fa_consent: next,
+      sms_2fa_consent_at: next ? new Date().toISOString() : null,
+      sms_2fa_consent_source: next ? "profile_page" : null,
+    }).eq("id", s.session.user.id);
+    setSavingMfa(false);
+    if (error) return toast({ title: "Could not update 2FA", description: error.message, variant: "destructive" });
+    setSms2fa(next);
+    toast({ title: next ? "Two-factor authentication enabled" : "Two-factor authentication disabled" });
+  }
 
   async function save() {
     setSaving(true);
