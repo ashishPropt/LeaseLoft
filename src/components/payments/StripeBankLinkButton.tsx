@@ -32,8 +32,8 @@ export function StripeBankLinkButton({ onLinked, label = "Link your bank", varia
       const stripe = await getStripe(publishableKey);
       if (!stripe) throw new Error("Stripe failed to load");
 
-      // @ts-expect-error - method exists at runtime
-      const result = await stripe.collectFinancialConnectionsAccounts({ clientSecret });
+      const stripeAny = stripe as unknown as { collectFinancialConnectionsAccounts: (opts: { clientSecret: string }) => Promise<{ error?: { message?: string }; financialConnectionsSession?: { accounts: Array<{ id: string }> } }> };
+      const result = await stripeAny.collectFinancialConnectionsAccounts({ clientSecret });
       if (result.error) throw new Error(result.error.message || "Bank link failed");
 
       const accounts = result.financialConnectionsSession?.accounts ?? [];
