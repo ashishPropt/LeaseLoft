@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const publicToken = String(body.public_token ?? '');
     const accountId = String(body.account_id ?? '');
-    if (!publicToken || !accountId) return json({ error: 'Missing public_token or account_id' }, 400);
+    if (!accountId) return json({ error: 'Missing account_id' }, 400);
 
     const sb = serviceClient();
 
