@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTenantContext } from "@/lib/useTenantContext";
 import { usePaymentMethods } from "@/lib/usePaymentMethods";
-import { PlaidLinkButton } from "@/components/payments/PlaidLinkButton";
+import { StripeBankLinkButton } from "@/components/payments/StripeBankLinkButton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { money, shortDate } from "@/lib/format";
