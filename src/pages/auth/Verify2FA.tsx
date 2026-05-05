@@ -41,7 +41,7 @@ const Verify2FA = () => {
       return;
     }
     toast.success("Verified");
-    navigate("/");
+    navigate(fromPath, { replace: true });
   }
 
   async function onResend() {
