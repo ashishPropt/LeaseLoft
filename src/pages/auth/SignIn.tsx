@@ -45,12 +45,10 @@ const SignIn = () => {
         toast.error(error.message);
         return;
       }
-      // 2FA temporarily disabled — keep send/verify edge functions and Verify2FA page for later re-enable.
       const userId = data.user?.id;
       let dest: string | null = null;
 
       if (userId) {
-        // Retry role lookup up to 3 times — session propagation to PostgREST can lag briefly after sign-in.
         for (let attempt = 0; attempt < 3 && !dest; attempt++) {
           if (attempt > 0) await new Promise((r) => setTimeout(r, 250));
           const { data: roles, error: rolesErr } = await supabase
@@ -88,6 +86,24 @@ const SignIn = () => {
         if (consentErr) console.error("Failed to save SMS consent", consentErr);
       }
 
+      // If user opted into SMS 2FA and has a phone, send OTP and route to verify page.
+      if (userId && smsConsent) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone_e164")
+          .eq("id", userId)
+          .maybeSingle();
+        if (profile?.phone_e164) {
+          const { error: sendErr } = await supabase.functions.invoke("send-sms-otp");
+          if (sendErr) {
+            toast.error("Could not send verification code. Try again.");
+            return;
+          }
+          toast.success("Verification code sent");
+          navigate("/verify-2fa", { replace: true, state: { from: { pathname: dest } } });
+          return;
+        }
+      }
 
       toast.success("Signed in");
       navigate(dest, { replace: true });
