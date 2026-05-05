@@ -71,10 +71,8 @@ Deno.serve(async (req) => {
     if (insertErr) return json({ error: "Could not store code" }, 500);
 
     // Send via Twilio
-    if (!TWILIO_FROM) {
-      console.warn("[send-sms-otp] TWILIO_FROM_NUMBER not set — code:", code);
-      return json({ success: true, dev_note: "TWILIO_FROM_NUMBER not configured; check function logs for code" });
-    }
+    // Test mode: hardcoded From & To for virtual phone number testing.
+    const TEST_NUMBER = "+18446439246";
 
     const tw = await fetch(`${GATEWAY_URL}/Messages.json`, {
       method: "POST",
@@ -84,8 +82,8 @@ Deno.serve(async (req) => {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        To: profile.phone_e164,
-        From: TWILIO_FROM,
+        To: TEST_NUMBER,
+        From: TEST_NUMBER,
         Body: `Your LeaseLoft verification code is ${code}. It expires in 5 minutes.`,
       }),
     });
