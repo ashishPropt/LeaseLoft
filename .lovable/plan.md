@@ -1,108 +1,72 @@
-# Opaque slugs for record URLs
-
 ## Goal
 
-Stop exposing guessable/memorable UUIDs in the address bar. Today URLs look like:
+Remove both Plaid-based payment providers (`plaid_transfer`, `plaid_stripe_fc`) and replace them with a single Stripe-native provider that:
 
-```
-/landlord/leases/8b1c...-uuid
-/landlord/properties/2f9e...-uuid
-```
+1. Uses **Stripe Financial Connections** for tenants to link their bank account (replaces Plaid Link).
+2. Charges rent via **ACH Direct Debit** (`us_bank_account` PaymentIntents) — Stripe is the merchant of record on the ACH rails.
 
-After this change they look like:
+This keeps the existing `PaymentProvider` abstraction (`createLinkToken`, `exchangePublicToken`, `initiatePayment`, `parseWebhook`) so the UI and edge-function callers barely change.
 
-```
-/landlord/leases/k7Qx9pLm2vRt
-/landlord/properties/aH3wYz8nB1cD
-```
+## Stripe account
 
-The route shape (`/landlord/leases/...`) stays the same — only the record identifier becomes a short, random, non-sequential token. Refresh, deep links, sharing, and React Router all keep working. Real access control stays where it belongs: `RequireAuth` + role checks + RLS.
+This is a custom rent-payments flow (not a product checkout), so we'll use the **bring-your-own-key Stripe** integration. We'll need:
 
-Out of scope: section names like `/admin`, `/landlord`, `/tenant` stay readable. Encrypting those would force a HashRouter rewrite and break too much (we discussed this trade-off).
+- `STRIPE_SECRET_KEY` (already used by the existing `plaid_stripe_fc` provider — we'll confirm/add)
+- `STRIPE_PUBLISHABLE_KEY` (new — needed in the browser to mount Financial Connections)
+- `STRIPE_WEBHOOK_SECRET` (new — to verify webhook signatures)
 
-## Routes affected
+If these aren't set, I'll request them via the secrets tool before deploying.
 
-Only two routes embed a record ID today:
+## What changes
 
-- `/landlord/leases/:id` (and `/edit`)
-- `/landlord/properties/:id`
+### 1. New edge-function provider: `supabase/functions/_shared/payments/stripe-fc-ach.ts`
 
-Everything else (`/landlord/payments`, `/admin/requests`, etc.) is already a fixed path and needs no change.
+Implements `PaymentProvider` with `name: 'stripe_fc_ach'`:
 
-## Approach
+- **createLinkToken** → creates a Stripe Financial Connections **Session** (`/v1/financial_connections/sessions`) with `permissions=payment_method,balances` and `filters[countries][]=US`. Returns the session's `client_secret` (we'll repurpose the `linkToken` field).
+- **exchangePublicToken** → input becomes `{ accountId }` (the FC account ID returned by the browser). Server calls `/v1/payment_methods` with `type=us_bank_account` and `us_bank_account[financial_connections_account]=<acct>`, attaches it to (or creates) a Stripe **Customer** for this tenant, fetches account metadata (`bank_name`, `last4`, `subtype`) from `/v1/financial_connections/accounts/{id}`. Stores `provider_access_token = pm_xxx`, `provider_account_id = cus_xxx`.
+- **initiatePayment** → creates a **PaymentIntent** (`amount`, `currency=usd`, `payment_method_types[]=us_bank_account`, `customer`, `payment_method`, `confirm=true`, `mandate_data` for ACH authorization, `idempotency_key` from payment row). Maps Stripe status → our status (`processing`, `succeeded` → `posted`, `requires_payment_method`/`canceled` → `failed`).
+- **parseWebhook** → verifies signature with `STRIPE_WEBHOOK_SECRET`, handles `payment_intent.succeeded` → `paid`, `payment_intent.processing` → `processing`, `payment_intent.payment_failed` → `failed`, `charge.refunded` / dispute → `returned`.
 
-1. Add a `public_slug TEXT UNIQUE` column to `leases` and `properties`.
-2. Backfill existing rows with a 12-char random slug (nanoid-style, URL-safe alphabet, no lookalikes).
-3. Add a Postgres trigger to auto-generate `public_slug` on INSERT if not provided.
-4. Update the two pages and all `<Link>` / `navigate()` call sites to use `public_slug` instead of `id`.
-5. Update detail-page loaders to look up by `public_slug` instead of `id`.
-6. Keep RLS exactly as it is — slug is just a lookup key, not a permission.
+### 2. Wire up provider selection
 
-A 12-char slug from a 58-char alphabet is ~70 bits of entropy — not guessable, and short enough to look clean.
+`supabase/functions/_shared/payments/index.ts`: add `case 'stripe_fc_ach'`. Default the `PAYMENT_PROVIDER` env to `stripe_fc_ach`. Delete the two Plaid files (`plaid-transfer.ts`, `plaid-stripe-fc.ts`).
 
-## Technical details
+### 3. Frontend: replace `PlaidLinkButton`
 
-**Migration**
+New component `src/components/payments/StripeBankLinkButton.tsx`:
+- Loads `@stripe/stripe-js` (CDN or npm — we'll add the package).
+- Calls `payment-link-token` to get the FC session `client_secret`.
+- Calls `stripe.collectFinancialConnectionsAccounts({ clientSecret })`.
+- On success, posts the selected `account.id` to `payment-exchange-token`.
+
+Replace usages in `src/pages/tenant/PayRent.tsx` and update copy from "Plaid" → "Stripe" / "your bank".
+
+Delete `src/components/payments/PlaidLinkButton.tsx`.
+
+### 4. Database migration
+
+Update the `payment_methods.provider` CHECK constraint to allow `stripe_fc_ach` (and drop the old Plaid values, or keep them for historical rows — we'll keep them but allow the new value):
 
 ```sql
-alter table public.leases     add column public_slug text unique;
-alter table public.properties add column public_slug text unique;
-
-create or replace function public.gen_public_slug()
-returns text language plpgsql as $$
-declare
-  alphabet text := '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-  result text := '';
-  i int;
-begin
-  for i in 1..12 loop
-    result := result || substr(alphabet, 1 + floor(random()*length(alphabet))::int, 1);
-  end loop;
-  return result;
-end $$;
-
--- Backfill
-update public.leases     set public_slug = public.gen_public_slug() where public_slug is null;
-update public.properties set public_slug = public.gen_public_slug() where public_slug is null;
-
-alter table public.leases     alter column public_slug set not null;
-alter table public.properties alter column public_slug set not null;
-
--- Auto-assign on insert
-create or replace function public.set_public_slug()
-returns trigger language plpgsql as $$
-begin
-  if new.public_slug is null then
-    new.public_slug := public.gen_public_slug();
-  end if;
-  return new;
-end $$;
-
-create trigger leases_set_public_slug     before insert on public.leases     for each row execute function public.set_public_slug();
-create trigger properties_set_public_slug before insert on public.properties for each row execute function public.set_public_slug();
+ALTER TABLE public.payment_methods DROP CONSTRAINT payment_methods_provider_check;
+ALTER TABLE public.payment_methods ADD CONSTRAINT payment_methods_provider_check
+  CHECK (provider IN ('stripe_fc_ach', 'plaid_transfer', 'plaid_stripe_fc'));
 ```
 
-(Collision risk at 70 bits is effectively zero at our scale; the unique constraint will surface it if it ever happens.)
+(Existing rows keep working in read-only mode but new links will only use `stripe_fc_ach`.)
 
-**Frontend changes**
+### 5. Webhook URL
 
-- `src/pages/landlord/LeaseDetail.tsx` — read `:id` param as `slug`, query `leases` by `public_slug`. Update internal navigates (`/edit`, sibling lease links) to use `public_slug`.
-- `src/pages/landlord/LeaseForm.tsx` — after save, navigate to `/landlord/leases/${row.public_slug}`.
-- `src/pages/landlord/RentRoll.tsx` — link rows by `public_slug` instead of `leaseId`. Include `public_slug` in the select.
-- `src/pages/landlord/Properties.tsx` — link rows by `public_slug`. Include in select.
-- `src/pages/landlord/PropertyDetail.tsx` — load by `public_slug`; update any child links.
-- `src/integrations/supabase/types.ts` regenerates automatically from the migration.
+The existing `payment-webhook` function URL stays the same. After deploy you'll need to register it in your Stripe dashboard for the events listed above and paste the signing secret as `STRIPE_WEBHOOK_SECRET`.
 
-Route definitions in `App.tsx` stay the same (`:id` becomes the slug param — no rename needed, but I'll rename it to `:slug` in the two affected routes for clarity).
+### 6. Secrets cleanup
 
-## What this does not do (and why)
+We'll leave `PLAID_*` secrets in place (harmless) — you can delete them from Cloud settings later.
 
-- Does not hide `/admin`, `/landlord`, `/tenant` segment names. Those are fixed paths shared by everyone in that role; they aren't memorable secrets and access is gated by `RequireAuth` + roles.
-- Does not encrypt the URL. The slug is opaque, not encrypted — there's no key to leak, nothing to decrypt client-side, and it's resistant to enumeration.
-- Does not break existing bookmarks of UUID-based URLs by silent redirect. Old UUID links will simply 404 on the detail pages after this change. If you want a grace-period redirect (try slug first, fall back to id lookup for 30 days), say so and I'll add it.
+## Open questions before I implement
 
-## Deliverables
+1. **Stripe account**: do you already have a Stripe account ready, and do you want to provide `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` / `STRIPE_WEBHOOK_SECRET` now? (Required before I can deploy.)
+2. **Existing linked banks**: any tenant currently linked via Plaid will need to re-link with Stripe. OK to leave their old `payment_methods` rows as `revoked` on first load, or just leave them dormant?
 
-- 1 migration adding `public_slug` columns, backfill, and insert trigger
-- Edits to 5 frontend files listed above
-- No RLS changes, no auth changes, no new env vars
+Once you confirm, I'll implement everything in one pass.
