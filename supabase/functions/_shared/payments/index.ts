@@ -1,15 +1,12 @@
 import type { PaymentProvider, ProviderName } from './types.ts';
-import { plaidTransferProvider } from './plaid-transfer.ts';
-import { plaidStripeFcProvider } from './plaid-stripe-fc.ts';
+import { stripeFcAchProvider } from './stripe-fc-ach.ts';
 
 export function getProvider(): PaymentProvider {
-  const name = (Deno.env.get('PAYMENT_PROVIDER') ?? 'plaid_transfer') as ProviderName;
+  const name = (Deno.env.get('PAYMENT_PROVIDER') ?? 'stripe_fc_ach') as ProviderName;
   switch (name) {
-    case 'plaid_stripe_fc':
-      return plaidStripeFcProvider;
-    case 'plaid_transfer':
+    case 'stripe_fc_ach':
     default:
-      return plaidTransferProvider;
+      return stripeFcAchProvider;
   }
 }
 

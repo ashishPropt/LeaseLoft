@@ -1,7 +1,6 @@
-// Provider-agnostic payment interface. Implementations live alongside this file.
-// Swap providers by changing the PAYMENT_PROVIDER env var — no caller changes.
+// Provider-agnostic payment interface.
 
-export type ProviderName = 'plaid_transfer' | 'plaid_stripe_fc';
+export type ProviderName = 'stripe_fc_ach';
 
 export interface LinkedAccount {
   accessToken: string;
@@ -36,7 +35,7 @@ export interface WebhookEvent {
 export interface PaymentProvider {
   name: ProviderName;
   createLinkToken(input: { userId: string }): Promise<{ linkToken: string }>;
-  exchangePublicToken(input: { publicToken: string; accountId: string }): Promise<LinkedAccount>;
+  exchangePublicToken(input: { publicToken?: string; accountId: string }): Promise<LinkedAccount>;
   initiatePayment(input: InitiateInput): Promise<InitiateResult>;
   parseWebhook(req: Request, rawBody: string): Promise<WebhookEvent[] | null>;
 }

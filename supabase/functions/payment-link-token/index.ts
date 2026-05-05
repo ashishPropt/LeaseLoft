@@ -9,7 +9,8 @@ Deno.serve(async (req) => {
 
     const provider = getProvider();
     const { linkToken } = await provider.createLinkToken({ userId: user.id });
-    return json({ link_token: linkToken });
+    const publishableKey = Deno.env.get('STRIPE_PUBLISHABLE_KEY') ?? '';
+    return json({ link_token: linkToken, publishable_key: publishableKey });
   } catch (e) {
     console.error('[payment-link-token]', e);
     return json({ error: (e as Error).message }, 500);

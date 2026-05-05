@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTenantContext } from "@/lib/useTenantContext";
 import { usePaymentMethods } from "@/lib/usePaymentMethods";
-import { PlaidLinkButton } from "@/components/payments/PlaidLinkButton";
+import { StripeBankLinkButton } from "@/components/payments/StripeBankLinkButton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { money, shortDate } from "@/lib/format";
@@ -155,8 +155,8 @@ export default function TenantPayRent() {
                 </div>
               ) : methods.length === 0 ? (
                 <div className="mt-2 rounded-md border border-dashed border-border p-4 text-sm">
-                  <p className="text-muted-foreground mb-3">No bank account linked yet. Link your bank securely with Plaid to pay rent via ACH.</p>
-                  <PlaidLinkButton onLinked={refreshMethods} />
+                  <p className="text-muted-foreground mb-3">No bank account linked yet. Link your bank securely with Stripe to pay rent via ACH.</p>
+                  <StripeBankLinkButton onLinked={refreshMethods} />
                 </div>
               ) : (
                 <>
@@ -176,7 +176,7 @@ export default function TenantPayRent() {
                     ))}
                   </RadioGroup>
                   <div className="mt-3">
-                    <PlaidLinkButton onLinked={refreshMethods} variant="outline" label="Link another bank" />
+                    <StripeBankLinkButton onLinked={refreshMethods} variant="outline" label="Link another bank" />
                   </div>
                 </>
               )}
