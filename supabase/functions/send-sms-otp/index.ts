@@ -72,7 +72,8 @@ Deno.serve(async (req) => {
 
     // Send via Twilio
     // Test mode: hardcoded From & To for virtual phone number testing.
-    const TEST_NUMBER = "+18446439246";
+    const TEST_FROM = "+18446439246";
+    const TEST_TO = "+18777804236";
 
     const tw = await fetch(`${GATEWAY_URL}/Messages.json`, {
       method: "POST",
@@ -82,8 +83,8 @@ Deno.serve(async (req) => {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        To: TEST_NUMBER,
-        From: TEST_NUMBER,
+        To: TEST_TO,
+        From: TEST_FROM,
         Body: `Your LeaseLoft verification code is ${code}. It expires in 5 minutes.`,
       }),
     });
