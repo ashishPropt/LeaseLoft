@@ -82,9 +82,6 @@ export default function TenantLease() {
           <h2 className="font-semibold text-foreground">Rent</h2>
           <div className="mt-3 text-3xl font-semibold font-mono text-foreground">{money(ctx.lease.rent_amount)}</div>
           <div className="text-sm text-muted-foreground">per month</div>
-          <div className="mt-6 pt-6 border-t border-border space-y-3 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Total over term</span><span className="font-mono font-semibold text-foreground">{money(ctx.lease.rent_amount * months)}</span></div>
-          </div>
         </div>
       </div>
     </TenantLayout>
