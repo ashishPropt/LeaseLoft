@@ -228,6 +228,28 @@ export default function LandlordProfile() {
               )}
             </div>
           </div>
+
+          <div className="mt-5 pt-5 border-t border-border">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Testing: attach existing Stripe account</Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              Paste a Stripe test connected account ID (e.g. <code className="font-mono">acct_1ABC…</code>) created in your Stripe test dashboard. Skips onboarding if the account already has details submitted.
+            </p>
+            <div className="flex gap-2 mt-2 max-w-lg">
+              <Input
+                placeholder="acct_1ABC..."
+                value={manualAcct}
+                onChange={(e) => setManualAcct(e.target.value)}
+                className="font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                onClick={() => startOnboarding(manualAcct.trim())}
+                disabled={connectLoading || !manualAcct.trim()}
+              >
+                Attach
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="lg:col-span-3 rounded-xl border border-border bg-card p-6">
