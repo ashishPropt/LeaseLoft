@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { History } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRightLeft, Check, Clock, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LandlordLayout } from "@/components/layout/LandlordLayout";
 import { StatusPill } from "@/components/layout/StatusPill";
@@ -27,6 +27,15 @@ interface Row {
   amount: number;
   method: string | null;
   status: string;
+  transferId: string | null;
+  transferStatus: string | null;
+  transferError: string | null;
+  transferCreatedAt: string | null;
+  destinationAccountId: string | null;
+  providerTransferId: string | null;
+  failureReason: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 
 interface AuditEntry {
@@ -108,6 +117,15 @@ export default function LandlordPayments() {
         amount: Number(p.amount),
         method: p.method,
         status: p.status,
+        transferId: p.transfer_id ?? null,
+        transferStatus: p.transfer_status ?? null,
+        transferError: p.transfer_error ?? null,
+        transferCreatedAt: p.transfer_created_at ?? null,
+        destinationAccountId: p.destination_account_id ?? null,
+        providerTransferId: p.provider_transfer_id ?? null,
+        failureReason: p.failure_reason ?? null,
+        updatedAt: p.updated_at,
+        createdAt: p.created_at,
       };
     }));
     setLoading(false);
@@ -231,15 +249,16 @@ export default function LandlordPayments() {
               <th className="text-left font-medium px-6 py-4">Paid</th>
               <th className="text-left font-medium px-6 py-4">Method</th>
               <th className="text-left font-medium px-6 py-4">Status</th>
+              <th className="text-left font-medium px-6 py-4">Transfer</th>
               <th className="text-right font-medium px-6 py-4">Amount</th>
               <th className="text-right font-medium px-6 py-4">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
+              <tr><td colSpan={9} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">No payments match these filters.</td></tr>
+              <tr><td colSpan={9} className="px-6 py-12 text-center text-muted-foreground">No payments match these filters.</td></tr>
             ) : filtered.map(r => (
               <tr key={r.id} className="border-t border-border">
                 <td className="px-6 py-4 font-medium text-foreground">{r.tenant}</td>
@@ -252,14 +271,17 @@ export default function LandlordPayments() {
                     {r.status[0].toUpperCase() + r.status.slice(1)}
                   </StatusPill>
                 </td>
+                <td className="px-6 py-4">
+                  <TransferCell row={r} />
+                </td>
                 <td className="px-6 py-4 text-right font-mono font-medium text-foreground">{money(r.amount)}</td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
                     {r.status === "pending" && (
                       <Button size="sm" variant="outline" onClick={() => openEdit(r)}>Update</Button>
                     )}
-                    <Button size="sm" variant="ghost" onClick={() => openHistory(r)} title="View audit log">
-                      <History className="w-4 h-4" />
+                    <Button size="sm" variant="ghost" onClick={() => openHistory(r)} title="View timeline">
+                      <Activity className="w-4 h-4" />
                     </Button>
                   </div>
                 </td>
@@ -328,48 +350,210 @@ export default function LandlordPayments() {
         </DialogContent>
       </Dialog>
 
-      {/* History dialog */}
+      {/* Timeline dialog */}
       <Dialog open={!!historyFor} onOpenChange={o => !o && setHistoryFor(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Payment audit log</DialogTitle>
+            <DialogTitle>Payment timeline</DialogTitle>
             <DialogDescription>
-              {historyFor && <>{historyFor.tenant} · {historyFor.unit} · due {shortDate(historyFor.due)}</>}
+              {historyFor && <>{historyFor.tenant} · {historyFor.unit} · due {shortDate(historyFor.due)} · {money(historyFor.amount)}</>}
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-96 overflow-y-auto">
+
+          {historyFor && (
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs space-y-1">
+              <div className="grid grid-cols-[110px_1fr] gap-x-3">
+                <span className="text-muted-foreground">Payment status</span>
+                <span className="font-medium">{historyFor.status}</span>
+                <span className="text-muted-foreground">Transfer</span>
+                <span className="font-medium">{transferLabel(historyFor)}</span>
+                {historyFor.transferId && (
+                  <>
+                    <span className="text-muted-foreground">Transfer ID</span>
+                    <span className="font-mono break-all">{historyFor.transferId}</span>
+                  </>
+                )}
+                {historyFor.destinationAccountId && (
+                  <>
+                    <span className="text-muted-foreground">Destination</span>
+                    <span className="font-mono break-all">{historyFor.destinationAccountId}</span>
+                  </>
+                )}
+                {historyFor.providerTransferId && (
+                  <>
+                    <span className="text-muted-foreground">PaymentIntent</span>
+                    <span className="font-mono break-all">{historyFor.providerTransferId}</span>
+                  </>
+                )}
+                {historyFor.transferError && (
+                  <>
+                    <span className="text-muted-foreground">Transfer error</span>
+                    <span className="text-destructive">{historyFor.transferError}</span>
+                  </>
+                )}
+                {historyFor.failureReason && (
+                  <>
+                    <span className="text-muted-foreground">Failure reason</span>
+                    <span className="text-destructive">{historyFor.failureReason}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-96 overflow-y-auto mt-2">
             {historyLoading ? (
               <p className="text-sm text-muted-foreground py-6 text-center">Loading…</p>
-            ) : history.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">No manual changes recorded.</p>
-            ) : (
-              <ul className="space-y-3">
-                {history.map(h => (
-                  <li key={h.id} className="border border-border rounded-lg p-3 text-sm">
-                    <div className="flex justify-between items-start gap-3">
-                      <div>
-                        <span className="text-muted-foreground">Status: </span>
-                        <span className="font-medium">{h.old_status ?? "—"} → {h.new_status}</span>
-                        {h.old_method !== h.new_method && (
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            Method: {h.old_method ?? "—"} → {h.new_method ?? "—"}
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(h.created_at).toLocaleString()}
+            ) : (() => {
+              const events = historyFor ? buildTimeline(historyFor, history) : [];
+              if (events.length === 0) {
+                return <p className="text-sm text-muted-foreground py-6 text-center">No events recorded.</p>;
+              }
+              return (
+                <ol className="relative border-l border-border ml-3 space-y-4 pl-5 py-2">
+                  {events.map((e, i) => (
+                    <li key={i} className="relative">
+                      <span className={`absolute -left-[26px] top-0.5 grid place-items-center w-5 h-5 rounded-full border ${e.iconBg}`}>
+                        <e.Icon className="w-3 h-3" />
                       </span>
-                    </div>
-                    {h.reason && (
-                      <div className="mt-2 text-muted-foreground italic">"{h.reason}"</div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
+                      <div className="text-sm font-medium text-foreground">{e.title}</div>
+                      {e.detail && <div className="text-xs text-muted-foreground mt-0.5">{e.detail}</div>}
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{new Date(e.at).toLocaleString()}</div>
+                    </li>
+                  ))}
+                </ol>
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>
     </LandlordLayout>
   );
 }
+
+function transferLabel(r: Row): string {
+  if (r.transferId) return `created (${r.transferId.slice(0, 14)}…)`;
+  if (r.transferStatus) return r.transferStatus;
+  if (r.status === "paid") return "not transferred";
+  return "—";
+}
+
+function TransferCell({ row }: { row: Row }) {
+  if (row.transferId) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs">
+        <Check className="w-3.5 h-3.5 text-emerald-600" />
+        <span className="font-mono text-foreground" title={row.transferId}>{row.transferId.slice(0, 10)}…</span>
+      </div>
+    );
+  }
+  if (row.transferStatus === "pending_landlord") {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-amber-600" title={row.transferError ?? ""}>
+        <AlertTriangle className="w-3.5 h-3.5" />
+        <span>Landlord not connected</span>
+      </div>
+    );
+  }
+  if (row.transferStatus === "failed") {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-destructive" title={row.transferError ?? ""}>
+        <X className="w-3.5 h-3.5" />
+        <span>Failed</span>
+      </div>
+    );
+  }
+  if (row.status === "paid") {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Clock className="w-3.5 h-3.5" />
+        <span>Pending</span>
+      </div>
+    );
+  }
+  return <span className="text-xs text-muted-foreground">—</span>;
+}
+
+interface TimelineEvent {
+  at: string;
+  title: string;
+  detail?: string;
+  Icon: typeof Check;
+  iconBg: string;
+}
+
+function buildTimeline(r: Row, audit: AuditEntry[]): TimelineEvent[] {
+  const events: TimelineEvent[] = [];
+
+  events.push({
+    at: r.createdAt,
+    title: "Payment scheduled",
+    detail: `Due ${shortDate(r.due)} · ${money(r.amount)}`,
+    Icon: Clock,
+    iconBg: "bg-muted text-muted-foreground border-border",
+  });
+
+  if (r.paid) {
+    events.push({
+      at: r.paid,
+      title: "Marked paid",
+      detail: r.method ? `Method: ${r.method}` : undefined,
+      Icon: Check,
+      iconBg: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    });
+  } else if (r.status === "failed") {
+    events.push({
+      at: r.updatedAt,
+      title: "Payment failed",
+      detail: r.failureReason ?? undefined,
+      Icon: X,
+      iconBg: "bg-destructive/10 text-destructive border-destructive/30",
+    });
+  }
+
+  // Audit log entries
+  audit.forEach(h => {
+    events.push({
+      at: h.created_at,
+      title: `Status changed: ${h.old_status ?? "—"} → ${h.new_status}`,
+      detail: [
+        h.old_method !== h.new_method ? `Method: ${h.old_method ?? "—"} → ${h.new_method ?? "—"}` : null,
+        h.reason ? `"${h.reason}"` : null,
+      ].filter(Boolean).join(" · "),
+      Icon: Activity,
+      iconBg: "bg-muted text-muted-foreground border-border",
+    });
+  });
+
+  // Transfer events
+  if (r.transferStatus === "pending_landlord") {
+    events.push({
+      at: r.updatedAt,
+      title: "Transfer pending",
+      detail: r.transferError ?? "Landlord has not connected a Stripe account.",
+      Icon: AlertTriangle,
+      iconBg: "bg-amber-100 text-amber-700 border-amber-200",
+    });
+  }
+  if (r.transferStatus === "failed") {
+    events.push({
+      at: r.updatedAt,
+      title: "Transfer failed",
+      detail: r.transferError ?? undefined,
+      Icon: X,
+      iconBg: "bg-destructive/10 text-destructive border-destructive/30",
+    });
+  }
+  if (r.transferId) {
+    events.push({
+      at: r.transferCreatedAt ?? r.updatedAt,
+      title: "Transferred to landlord",
+      detail: `Transfer ${r.transferId}${r.destinationAccountId ? ` → ${r.destinationAccountId}` : ""}`,
+      Icon: ArrowRightLeft,
+      iconBg: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    });
+  }
+
+  return events.sort((a, b) => +new Date(a.at) - +new Date(b.at));
+}
+
