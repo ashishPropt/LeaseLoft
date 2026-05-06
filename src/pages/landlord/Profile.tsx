@@ -239,6 +239,28 @@ export default function LandlordProfile() {
                   Stripe dashboard
                 </Button>
               )}
+              {connect?.connected && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={connectLoading}>
+                      <Unlink className="w-4 h-4 mr-2" />
+                      Disconnect
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Disconnect Stripe account?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Future tenant payments will not be transferred to your bank until you reconnect a Stripe account. This does not close your Stripe account — you can manage or close it from your Stripe dashboard.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={disconnect}>Disconnect</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
 
