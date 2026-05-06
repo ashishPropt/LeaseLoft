@@ -1,72 +1,63 @@
-## Goal
+# Secure Document Sharing — Landlord + Tenant Uploads
 
-Remove both Plaid-based payment providers (`plaid_transfer`, `plaid_stripe_fc`) and replace them with a single Stripe-native provider that:
+Build a complete document upload + sharing system scoped per-lease. Landlord and tenant on the same lease can both upload and view; nobody else can (admins read-only). Enforce size and MIME limits in the DB, in storage policies, and in the UI.
 
-1. Uses **Stripe Financial Connections** for tenants to link their bank account (replaces Plaid Link).
-2. Charges rent via **ACH Direct Debit** (`us_bank_account` PaymentIntents) — Stripe is the merchant of record on the ACH rails.
+## What we'll build
 
-This keeps the existing `PaymentProvider` abstraction (`createLinkToken`, `exchangePublicToken`, `initiatePayment`, `parseWebhook`) so the UI and edge-function callers barely change.
+### 1. Private storage bucket + RLS
+Create a private `documents` bucket (no public URLs — all access via 60-second signed URLs). Path convention: `lease/<lease_id>/<uuid>-<filename>`.
 
-## Stripe account
+Policies on `storage.objects` (scoped to bucket `documents`):
+- **INSERT**: caller is the lease's landlord OR tenant (joined via path's `lease_id` segment → `public.leases`)
+- **SELECT**: landlord, tenant, or admin
+- **DELETE**: only the original uploader (matched via owner_id on the documents row) or admin
 
-This is a custom rent-payments flow (not a product checkout), so we'll use the **bring-your-own-key Stripe** integration. We'll need:
+### 2. DB-level validation (authoritative)
+`BEFORE INSERT` trigger on `public.documents`:
+- Reject if `size_bytes > 25 MB`
+- Reject if `mime_type` not in allow-list
+- Reject if caller is neither landlord nor tenant of `lease_id`
 
-- `STRIPE_SECRET_KEY` (already used by the existing `plaid_stripe_fc` provider — we'll confirm/add)
-- `STRIPE_PUBLISHABLE_KEY` (new — needed in the browser to mount Financial Connections)
-- `STRIPE_WEBHOOK_SECRET` (new — to verify webhook signatures)
+This guarantees limits hold even if a client bypasses UI checks.
 
-If these aren't set, I'll request them via the secrets tool before deploying.
+### 3. RLS update for tenant uploads
+Current `documents` table only allows owners to INSERT. Add policy so a tenant on the lease can also INSERT (with `owner_id = auth.uid()` and a valid `lease_id`).
 
-## What changes
+### 4. Landlord UI — `src/pages/landlord/LeaseDetail.tsx`
+Add a Documents card:
+- Drag-and-drop / file picker (multi-file)
+- Client pre-check (size + MIME); reject with toast before upload
+- Upload → insert documents row → refresh list
+- List with name, size, date, uploader badge ("You" / tenant name)
+- Download (60s signed URL), delete (own uploads only)
+- Helper text: "Max 25 MB. PDF, images, Word, Excel, text, CSV."
 
-### 1. New edge-function provider: `supabase/functions/_shared/payments/stripe-fc-ach.ts`
+### 5. Tenant UI — `src/pages/tenant/Documents.tsx`
+Add upload control mirroring landlord side:
+- Same client pre-checks and helper text
+- Uploader badge ("You" / "Landlord")
+- Tenant can delete only files they uploaded
+- Empty-state copy clarifying files are private to tenant + landlord
 
-Implements `PaymentProvider` with `name: 'stripe_fc_ach'`:
+### 6. Shared client helper
+New `src/lib/documentLimits.ts` exporting `MAX_BYTES = 25 * 1024 * 1024` and `ALLOWED_MIME` array, plus a `validateFile(file)` helper used by both pages.
 
-- **createLinkToken** → creates a Stripe Financial Connections **Session** (`/v1/financial_connections/sessions`) with `permissions=payment_method,balances` and `filters[countries][]=US`. Returns the session's `client_secret` (we'll repurpose the `linkToken` field).
-- **exchangePublicToken** → input becomes `{ accountId }` (the FC account ID returned by the browser). Server calls `/v1/payment_methods` with `type=us_bank_account` and `us_bank_account[financial_connections_account]=<acct>`, attaches it to (or creates) a Stripe **Customer** for this tenant, fetches account metadata (`bank_name`, `last4`, `subtype`) from `/v1/financial_connections/accounts/{id}`. Stores `provider_access_token = pm_xxx`, `provider_account_id = cus_xxx`.
-- **initiatePayment** → creates a **PaymentIntent** (`amount`, `currency=usd`, `payment_method_types[]=us_bank_account`, `customer`, `payment_method`, `confirm=true`, `mandate_data` for ACH authorization, `idempotency_key` from payment row). Maps Stripe status → our status (`processing`, `succeeded` → `posted`, `requires_payment_method`/`canceled` → `failed`).
-- **parseWebhook** → verifies signature with `STRIPE_WEBHOOK_SECRET`, handles `payment_intent.succeeded` → `paid`, `payment_intent.processing` → `processing`, `payment_intent.payment_failed` → `failed`, `charge.refunded` / dispute → `returned`.
+## Security model
 
-### 2. Wire up provider selection
+| Actor | Upload | View | Delete |
+|---|---|---|---|
+| Landlord on lease | yes | yes | own uploads |
+| Tenant on lease | yes | yes | own uploads |
+| Other users | no | no | no |
+| Admin | no | yes | yes |
 
-`supabase/functions/_shared/payments/index.ts`: add `case 'stripe_fc_ach'`. Default the `PAYMENT_PROVIDER` env to `stripe_fc_ach`. Delete the two Plaid files (`plaid-transfer.ts`, `plaid-stripe-fc.ts`).
+All file access via short-lived signed URLs only — bucket is private.
 
-### 3. Frontend: replace `PlaidLinkButton`
+## Allow-list (initial)
+`application/pdf`, `image/png`, `image/jpeg`, `image/webp`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document` (.docx), `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (.xlsx), `text/plain`, `text/csv`.
 
-New component `src/components/payments/StripeBankLinkButton.tsx`:
-- Loads `@stripe/stripe-js` (CDN or npm — we'll add the package).
-- Calls `payment-link-token` to get the FC session `client_secret`.
-- Calls `stripe.collectFinancialConnectionsAccounts({ clientSecret })`.
-- On success, posts the selected `account.id` to `payment-exchange-token`.
-
-Replace usages in `src/pages/tenant/PayRent.tsx` and update copy from "Plaid" → "Stripe" / "your bank".
-
-Delete `src/components/payments/PlaidLinkButton.tsx`.
-
-### 4. Database migration
-
-Update the `payment_methods.provider` CHECK constraint to allow `stripe_fc_ach` (and drop the old Plaid values, or keep them for historical rows — we'll keep them but allow the new value):
-
-```sql
-ALTER TABLE public.payment_methods DROP CONSTRAINT payment_methods_provider_check;
-ALTER TABLE public.payment_methods ADD CONSTRAINT payment_methods_provider_check
-  CHECK (provider IN ('stripe_fc_ach', 'plaid_transfer', 'plaid_stripe_fc'));
-```
-
-(Existing rows keep working in read-only mode but new links will only use `stripe_fc_ach`.)
-
-### 5. Webhook URL
-
-The existing `payment-webhook` function URL stays the same. After deploy you'll need to register it in your Stripe dashboard for the events listed above and paste the signing secret as `STRIPE_WEBHOOK_SECRET`.
-
-### 6. Secrets cleanup
-
-We'll leave `PLAID_*` secrets in place (harmless) — you can delete them from Cloud settings later.
-
-## Open questions before I implement
-
-1. **Stripe account**: do you already have a Stripe account ready, and do you want to provide `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` / `STRIPE_WEBHOOK_SECRET` now? (Required before I can deploy.)
-2. **Existing linked banks**: any tenant currently linked via Plaid will need to re-link with Stripe. OK to leave their old `payment_methods` rows as `revoked` on first load, or just leave them dormant?
-
-Once you confirm, I'll implement everything in one pass.
+## Files touched
+- New migration: bucket + storage policies + `validate_document_upload()` trigger + tenant INSERT policy on `public.documents` + landlord/admin DELETE policies
+- New: `src/lib/documentLimits.ts`
+- Edit: `src/pages/landlord/LeaseDetail.tsx` — add Documents card with upload/list/delete
+- Edit: `src/pages/tenant/Documents.tsx` — add upload control + delete-own

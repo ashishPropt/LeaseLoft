@@ -7,6 +7,7 @@ import { StatusPill } from "@/components/layout/StatusPill";
 import { Button } from "@/components/ui/button";
 import { money, shortDate } from "@/lib/format";
 import { toast } from "sonner";
+import { LeaseDocuments } from "@/components/documents/LeaseDocuments";
 
 interface LeaseRow {
   id: string;
@@ -36,6 +37,11 @@ export default function LandlordLeaseDetail() {
   const [tenant, setTenant] = useState<ProfileRow | null>(null);
   const [otherLeases, setOtherLeases] = useState<LeaseRow[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id ?? null));
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -218,6 +224,15 @@ export default function LandlordLeaseDetail() {
               </div>
             )}
           </div>
+
+          {userId && (
+            <LeaseDocuments
+              leaseId={lease.id}
+              currentUserId={userId}
+              uploaderLabels={{ [lease.tenant_id]: tenantName, [lease.landlord_id]: "You (landlord)" }}
+              canDeleteOthers
+            />
+          )}
         </div>
 
         <div className="space-y-4">

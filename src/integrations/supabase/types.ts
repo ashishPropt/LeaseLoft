@@ -846,6 +846,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      lease_id_from_object_path: { Args: { _name: string }; Returns: string }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -881,6 +882,10 @@ export type Database = {
       }
       tenant_has_lease_with_landlord: {
         Args: { _landlord_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_can_access_lease_object: {
+        Args: { _name: string; _user_id: string }
         Returns: boolean
       }
       user_owns_property: {
