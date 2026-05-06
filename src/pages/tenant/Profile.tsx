@@ -117,17 +117,6 @@ export default function TenantProfile() {
           )}
         </div>
 
-        <div className="lg:col-span-3 rounded-xl border border-border bg-card p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h2 className="font-semibold text-foreground">Two-factor authentication</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Receive a one-time code via SMS when signing in. Requires a verified phone number on file.
-              </p>
-            </div>
-            <Switch checked={sms2fa} disabled={savingMfa || loading} onCheckedChange={toggle2fa} />
-          </div>
-        </div>
       </div>
     </TenantLayout>
   );
