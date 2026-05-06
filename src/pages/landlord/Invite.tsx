@@ -6,6 +6,7 @@ import { StatusPill } from "@/components/layout/StatusPill";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { shortDate } from "@/lib/format";
 
@@ -26,30 +27,46 @@ function makeCode() {
   return `TN-2026-${r}`;
 }
 
+interface Property { id: string; name: string; address: string | null }
+interface Unit { id: string; label: string; property_id: string }
+
 export default function LandlordInvite() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
-  const [form, setForm] = useState({ first_name: "", last_name: "", email: "", property: "", note: "" });
+  const [form, setForm] = useState({ first_name: "", last_name: "", email: "", property_id: "", unit_id: "", note: "" });
   const [creatorName, setCreatorName] = useState<string>("");
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
 
   async function load() {
     const { data: s } = await supabase.auth.getSession();
     if (!s.session) return;
-    const { data: prof } = await supabase.from("profiles").select("full_name,first_name,last_name").eq("id", s.session.user.id).maybeSingle();
+    const uid = s.session.user.id;
+    const { data: prof } = await supabase.from("profiles").select("full_name,first_name,last_name").eq("id", uid).maybeSingle();
     setCreatorName(prof?.full_name || `${prof?.first_name ?? ""} ${prof?.last_name ?? ""}`.trim() || "Landlord");
 
-    const { data } = await supabase
-      .from("invite_codes")
-      .select("code,email,first_name,last_name,property,used_count,max_uses,expires_at,created_at")
-      .eq("role", "tenant")
-      .eq("created_by", s.session.user.id)
-      .order("created_at", { ascending: false });
-    setInvites(data ?? []);
+    const [invitesRes, propsRes] = await Promise.all([
+      supabase
+        .from("invite_codes")
+        .select("code,email,first_name,last_name,property,used_count,max_uses,expires_at,created_at")
+        .eq("role", "tenant")
+        .eq("created_by", uid)
+        .order("created_at", { ascending: false }),
+      supabase.from("properties").select("id,name,address").eq("owner_id", uid).order("name"),
+    ]);
+    setInvites(invitesRes.data ?? []);
+    setProperties(propsRes.data ?? []);
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (!form.property_id) { setUnits([]); return; }
+    supabase.from("units").select("id,label,property_id").eq("property_id", form.property_id).order("label")
+      .then(({ data }) => setUnits(data ?? []));
+  }, [form.property_id]);
 
   async function createInvite() {
     if (!form.first_name || !form.email) {
@@ -60,13 +77,18 @@ export default function LandlordInvite() {
     const code = makeCode();
     const { data: s } = await supabase.auth.getSession();
     if (!s.session) { setCreating(false); return; }
+    const prop = properties.find(p => p.id === form.property_id);
+    const unit = units.find(u => u.id === form.unit_id);
+    const propertyText = prop
+      ? unit ? `${prop.name} · ${unit.label}` : prop.name
+      : null;
     const { error } = await supabase.from("invite_codes").insert({
       code,
       role: "tenant",
       email: form.email,
       first_name: form.first_name,
       last_name: form.last_name || null,
-      property: form.property || null,
+      property: propertyText,
       note: form.note || null,
       created_by: s.session.user.id,
       created_by_name: creatorName,
@@ -76,7 +98,7 @@ export default function LandlordInvite() {
     setCreating(false);
     if (error) return toast({ title: "Could not create invite", description: error.message, variant: "destructive" });
     toast({ title: "Invite created", description: `Code ${code} ready to share.` });
-    setForm({ first_name: "", last_name: "", email: "", property: "", note: "" });
+    setForm({ first_name: "", last_name: "", email: "", property_id: "", unit_id: "", note: "" });
     load();
   }
 
@@ -110,8 +132,34 @@ export default function LandlordInvite() {
               <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
             </div>
             <div>
-              <Label>Property / unit (optional)</Label>
-              <Input placeholder="e.g. 215 Maple Ave · 4B" value={form.property} onChange={e => setForm({ ...form, property: e.target.value })} />
+              <Label>Property (optional)</Label>
+              <Select value={form.property_id || "none"} onValueChange={v => setForm({ ...form, property_id: v === "none" ? "" : v, unit_id: "" })}>
+                <SelectTrigger><SelectValue placeholder="Select property" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No property</SelectItem>
+                  {properties.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Unit (optional)</Label>
+              <Select
+                value={form.unit_id || "none"}
+                onValueChange={v => setForm({ ...form, unit_id: v === "none" ? "" : v })}
+                disabled={!form.property_id || units.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!form.property_id ? "Select a property first" : units.length === 0 ? "No units" : "Select unit"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No unit</SelectItem>
+                  {units.map(u => (
+                    <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button className="w-full" onClick={createInvite} disabled={creating}>
               <Plus className="w-4 h-4 mr-2" />{creating ? "Creating…" : "Create invite code"}
