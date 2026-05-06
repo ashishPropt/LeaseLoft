@@ -224,6 +224,15 @@ export default function LandlordLeaseDetail() {
               </div>
             )}
           </div>
+
+          {userId && (
+            <LeaseDocuments
+              leaseId={lease.id}
+              currentUserId={userId}
+              uploaderLabels={{ [lease.tenant_id]: tenantName, [lease.landlord_id]: "You (landlord)" }}
+              canDeleteOthers
+            />
+          )}
         </div>
 
         <div className="space-y-4">
