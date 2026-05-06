@@ -8,8 +8,9 @@ import { toast } from "@/hooks/use-toast";
 import { initials } from "@/lib/format";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Landmark, ExternalLink, RefreshCw } from "lucide-react";
+import { Landmark, ExternalLink, RefreshCw, Unlink } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface ConnectStatus {
   connected: boolean;
@@ -105,6 +106,18 @@ export default function LandlordProfile() {
   async function openDashboard() {
     await refreshConnect(true);
     if (connect?.login_url) window.open(connect.login_url, "_blank");
+  }
+
+  async function disconnect() {
+    setConnectLoading(true);
+    const { error } = await supabase.functions.invoke("stripe-connect-disconnect", { method: "POST" });
+    setConnectLoading(false);
+    if (error) {
+      toast({ title: "Could not disconnect", description: error.message, variant: "destructive" });
+      return;
+    }
+    setConnect({ connected: false });
+    toast({ title: "Stripe account disconnected" });
   }
 
   async function toggle2fa(next: boolean) {
@@ -225,6 +238,28 @@ export default function LandlordProfile() {
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Stripe dashboard
                 </Button>
+              )}
+              {connect?.connected && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={connectLoading}>
+                      <Unlink className="w-4 h-4 mr-2" />
+                      Disconnect
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Disconnect Stripe account?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Future tenant payments will not be transferred to your bank until you reconnect a Stripe account. This does not close your Stripe account — you can manage or close it from your Stripe dashboard.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={disconnect}>Disconnect</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
             </div>
           </div>
