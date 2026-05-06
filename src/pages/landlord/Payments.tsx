@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { History } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRightLeft, Check, Clock, ExternalLink, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LandlordLayout } from "@/components/layout/LandlordLayout";
 import { StatusPill } from "@/components/layout/StatusPill";
