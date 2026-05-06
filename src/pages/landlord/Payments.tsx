@@ -27,6 +27,15 @@ interface Row {
   amount: number;
   method: string | null;
   status: string;
+  transferId: string | null;
+  transferStatus: string | null;
+  transferError: string | null;
+  transferCreatedAt: string | null;
+  destinationAccountId: string | null;
+  providerTransferId: string | null;
+  failureReason: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 
 interface AuditEntry {
@@ -108,6 +117,15 @@ export default function LandlordPayments() {
         amount: Number(p.amount),
         method: p.method,
         status: p.status,
+        transferId: p.transfer_id ?? null,
+        transferStatus: p.transfer_status ?? null,
+        transferError: p.transfer_error ?? null,
+        transferCreatedAt: p.transfer_created_at ?? null,
+        destinationAccountId: p.destination_account_id ?? null,
+        providerTransferId: p.provider_transfer_id ?? null,
+        failureReason: p.failure_reason ?? null,
+        updatedAt: p.updated_at,
+        createdAt: p.created_at,
       };
     }));
     setLoading(false);
