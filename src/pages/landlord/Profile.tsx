@@ -76,17 +76,30 @@ export default function LandlordProfile() {
     }
   }, [searchParams, setSearchParams, refreshConnect]);
 
-  async function startOnboarding() {
+  const [manualAcct, setManualAcct] = useState("");
+
+  async function startOnboarding(accountId?: string) {
     setConnectLoading(true);
     const { data, error } = await supabase.functions.invoke("stripe-connect-onboard", {
-      body: { return_url_origin: window.location.origin },
+      body: {
+        return_url_origin: window.location.origin,
+        ...(accountId ? { account_id: accountId } : {}),
+      },
     });
     setConnectLoading(false);
-    if (error || !data?.url) {
+    if (error) {
       toast({ title: "Could not start Stripe onboarding", description: error?.message, variant: "destructive" });
       return;
     }
-    window.location.href = data.url as string;
+    if (data?.url) {
+      window.location.href = data.url as string;
+      return;
+    }
+    if (data?.attached) {
+      toast({ title: "Test account attached" });
+      setManualAcct("");
+      refreshConnect();
+    }
   }
 
   async function openDashboard() {
@@ -204,7 +217,7 @@ export default function LandlordProfile() {
                 Refresh
               </Button>
               {!connect?.connected || partial ? (
-                <Button onClick={startOnboarding} disabled={connectLoading}>
+                <Button onClick={() => startOnboarding()} disabled={connectLoading}>
                   {connect?.connected ? "Continue onboarding" : "Connect with Stripe"}
                 </Button>
               ) : (
@@ -213,6 +226,28 @@ export default function LandlordProfile() {
                   Stripe dashboard
                 </Button>
               )}
+            </div>
+          </div>
+
+          <div className="mt-5 pt-5 border-t border-border">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Testing: attach existing Stripe account</Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              Paste a Stripe test connected account ID (e.g. <code className="font-mono">acct_1ABC…</code>) created in your Stripe test dashboard. Skips onboarding if the account already has details submitted.
+            </p>
+            <div className="flex gap-2 mt-2 max-w-lg">
+              <Input
+                placeholder="acct_1ABC..."
+                value={manualAcct}
+                onChange={(e) => setManualAcct(e.target.value)}
+                className="font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                onClick={() => startOnboarding(manualAcct.trim())}
+                disabled={connectLoading || !manualAcct.trim()}
+              >
+                Attach
+              </Button>
             </div>
           </div>
         </div>
