@@ -19,6 +19,7 @@ import LandlordLeaseDetail from "./pages/landlord/LeaseDetail.tsx";
 import LandlordLeaseForm from "./pages/landlord/LeaseForm.tsx";
 import LandlordProperties from "./pages/landlord/Properties.tsx";
 import LandlordPropertyDetail from "./pages/landlord/PropertyDetail.tsx";
+import LandlordProfile from "./pages/landlord/Profile.tsx";
 import AdminUsers from "./pages/admin/Users.tsx";
 import AdminInvites from "./pages/admin/Invites.tsx";
 import AdminRequests from "./pages/admin/Requests.tsx";
@@ -64,6 +65,7 @@ const App = () => (
           <Route path="/landlord/leases/:slug/edit" element={<LandlordLeaseForm />} />
           <Route path="/landlord/properties" element={<LandlordProperties />} />
           <Route path="/landlord/properties/:slug" element={<LandlordPropertyDetail />} />
+          <Route path="/landlord/profile" element={<LandlordProfile />} />
 
           <Route path="/admin" element={<AdminUsers />} />
           <Route path="/admin/requests" element={<AdminRequests />} />
