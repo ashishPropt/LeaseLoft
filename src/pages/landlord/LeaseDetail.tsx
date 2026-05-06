@@ -37,6 +37,11 @@ export default function LandlordLeaseDetail() {
   const [tenant, setTenant] = useState<ProfileRow | null>(null);
   const [otherLeases, setOtherLeases] = useState<LeaseRow[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id ?? null));
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
