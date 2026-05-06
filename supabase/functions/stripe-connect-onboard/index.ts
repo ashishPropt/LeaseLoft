@@ -34,7 +34,25 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (pErr) throw pErr;
 
+    const body = await req.json().catch(() => ({}));
+    const manualAccountId = typeof body.account_id === 'string' ? body.account_id.trim() : '';
+
     let accountId = profile?.stripe_connect_account_id ?? null;
+
+    // Allow attaching a pre-existing Stripe (test) connected account by ID.
+    if (manualAccountId) {
+      if (!/^acct_[A-Za-z0-9]+$/.test(manualAccountId)) {
+        return json({ error: 'Invalid Stripe account id (expected acct_…)' }, 400);
+      }
+      // Validate it exists / is accessible with our platform key
+      await stripe(`/accounts/${manualAccountId}`);
+      accountId = manualAccountId;
+      await sb.from('profiles').update({
+        stripe_connect_account_id: accountId,
+        stripe_connect_updated_at: new Date().toISOString(),
+      }).eq('id', user.id);
+    }
+
     if (!accountId) {
       const acct = await stripe('/accounts', {
         type: 'express',
