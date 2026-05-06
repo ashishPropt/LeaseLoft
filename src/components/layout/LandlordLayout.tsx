@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Home, DollarSign, Users, BarChart3, Wrench, UserPlus, Building2 } from "lucide-react";
+import { Home, DollarSign, Users, BarChart3, Wrench, UserPlus, Building2, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AppSidebar, NavItem } from "./AppSidebar";
@@ -14,6 +14,7 @@ const items: NavItem[] = [
   { to: "/landlord/rent-roll",    label: "Rent Roll",        icon: BarChart3 },
   { to: "/landlord/maintenance",  label: "Maintenance",      icon: Wrench },
   { to: "/landlord/invite",       label: "Invite Tenants",   icon: UserPlus },
+  { to: "/landlord/profile",      label: "Profile",          icon: User },
 ];
 
 export const LandlordLayout = ({ crumbs, children }: { crumbs: string[]; children: React.ReactNode }) => {

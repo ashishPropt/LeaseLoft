@@ -591,6 +591,11 @@ export type Database = {
           sms_2fa_consent: boolean
           sms_2fa_consent_at: string | null
           sms_2fa_consent_source: string | null
+          stripe_connect_account_id: string | null
+          stripe_connect_charges_enabled: boolean
+          stripe_connect_details_submitted: boolean
+          stripe_connect_payouts_enabled: boolean
+          stripe_connect_updated_at: string | null
           updated_at: string
         }
         Insert: {
@@ -605,6 +610,11 @@ export type Database = {
           sms_2fa_consent?: boolean
           sms_2fa_consent_at?: string | null
           sms_2fa_consent_source?: string | null
+          stripe_connect_account_id?: string | null
+          stripe_connect_charges_enabled?: boolean
+          stripe_connect_details_submitted?: boolean
+          stripe_connect_payouts_enabled?: boolean
+          stripe_connect_updated_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -619,6 +629,11 @@ export type Database = {
           sms_2fa_consent?: boolean
           sms_2fa_consent_at?: string | null
           sms_2fa_consent_source?: string | null
+          stripe_connect_account_id?: string | null
+          stripe_connect_charges_enabled?: boolean
+          stripe_connect_details_submitted?: boolean
+          stripe_connect_payouts_enabled?: boolean
+          stripe_connect_updated_at?: string | null
           updated_at?: string
         }
         Relationships: []
