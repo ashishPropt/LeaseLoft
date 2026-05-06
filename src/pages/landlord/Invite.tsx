@@ -27,30 +27,46 @@ function makeCode() {
   return `TN-2026-${r}`;
 }
 
+interface Property { id: string; name: string; address: string | null }
+interface Unit { id: string; label: string; property_id: string }
+
 export default function LandlordInvite() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
-  const [form, setForm] = useState({ first_name: "", last_name: "", email: "", property: "", note: "" });
+  const [form, setForm] = useState({ first_name: "", last_name: "", email: "", property_id: "", unit_id: "", note: "" });
   const [creatorName, setCreatorName] = useState<string>("");
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
 
   async function load() {
     const { data: s } = await supabase.auth.getSession();
     if (!s.session) return;
-    const { data: prof } = await supabase.from("profiles").select("full_name,first_name,last_name").eq("id", s.session.user.id).maybeSingle();
+    const uid = s.session.user.id;
+    const { data: prof } = await supabase.from("profiles").select("full_name,first_name,last_name").eq("id", uid).maybeSingle();
     setCreatorName(prof?.full_name || `${prof?.first_name ?? ""} ${prof?.last_name ?? ""}`.trim() || "Landlord");
 
-    const { data } = await supabase
-      .from("invite_codes")
-      .select("code,email,first_name,last_name,property,used_count,max_uses,expires_at,created_at")
-      .eq("role", "tenant")
-      .eq("created_by", s.session.user.id)
-      .order("created_at", { ascending: false });
-    setInvites(data ?? []);
+    const [invitesRes, propsRes] = await Promise.all([
+      supabase
+        .from("invite_codes")
+        .select("code,email,first_name,last_name,property,used_count,max_uses,expires_at,created_at")
+        .eq("role", "tenant")
+        .eq("created_by", uid)
+        .order("created_at", { ascending: false }),
+      supabase.from("properties").select("id,name,address").eq("owner_id", uid).order("name"),
+    ]);
+    setInvites(invitesRes.data ?? []);
+    setProperties(propsRes.data ?? []);
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (!form.property_id) { setUnits([]); return; }
+    supabase.from("units").select("id,label,property_id").eq("property_id", form.property_id).order("label")
+      .then(({ data }) => setUnits(data ?? []));
+  }, [form.property_id]);
 
   async function createInvite() {
     if (!form.first_name || !form.email) {
