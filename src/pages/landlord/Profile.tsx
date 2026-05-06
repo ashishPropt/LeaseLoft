@@ -108,6 +108,18 @@ export default function LandlordProfile() {
     if (connect?.login_url) window.open(connect.login_url, "_blank");
   }
 
+  async function disconnect() {
+    setConnectLoading(true);
+    const { error } = await supabase.functions.invoke("stripe-connect-disconnect", { method: "POST" });
+    setConnectLoading(false);
+    if (error) {
+      toast({ title: "Could not disconnect", description: error.message, variant: "destructive" });
+      return;
+    }
+    setConnect({ connected: false });
+    toast({ title: "Stripe account disconnected" });
+  }
+
   async function toggle2fa(next: boolean) {
     if (!userId) return;
     if (next && !form.phone_e164) {
