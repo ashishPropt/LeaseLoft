@@ -516,6 +516,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          destination_account_id: string | null
           due_date: string
           failure_reason: string | null
           id: string
@@ -527,11 +528,16 @@ export type Database = {
           provider: string | null
           provider_transfer_id: string | null
           status: Database["public"]["Enums"]["payment_status"]
+          transfer_created_at: string | null
+          transfer_error: string | null
+          transfer_id: string | null
+          transfer_status: string | null
           updated_at: string
         }
         Insert: {
           amount: number
           created_at?: string
+          destination_account_id?: string | null
           due_date: string
           failure_reason?: string | null
           id?: string
@@ -543,11 +549,16 @@ export type Database = {
           provider?: string | null
           provider_transfer_id?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          transfer_created_at?: string | null
+          transfer_error?: string | null
+          transfer_id?: string | null
+          transfer_status?: string | null
           updated_at?: string
         }
         Update: {
           amount?: number
           created_at?: string
+          destination_account_id?: string | null
           due_date?: string
           failure_reason?: string | null
           id?: string
@@ -559,6 +570,10 @@ export type Database = {
           provider?: string | null
           provider_transfer_id?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          transfer_created_at?: string | null
+          transfer_error?: string | null
+          transfer_id?: string | null
+          transfer_status?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -806,6 +821,7 @@ export type Database = {
         Returns: {
           amount: number
           created_at: string
+          destination_account_id: string | null
           due_date: string
           failure_reason: string | null
           id: string
@@ -817,6 +833,10 @@ export type Database = {
           provider: string | null
           provider_transfer_id: string | null
           status: Database["public"]["Enums"]["payment_status"]
+          transfer_created_at: string | null
+          transfer_error: string | null
+          transfer_id: string | null
+          transfer_status: string | null
           updated_at: string
         }
         SetofOptions: {

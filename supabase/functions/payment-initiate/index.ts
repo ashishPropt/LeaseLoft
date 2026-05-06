@@ -1,5 +1,6 @@
 import { corsHeaders, getUser, json, serviceClient } from '../_shared/auth.ts';
 import { getProvider } from '../_shared/payments/index.ts';
+import { createTransferForPayment } from '../_shared/payments/stripe-transfer.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -81,7 +82,21 @@ Deno.serve(async (req) => {
       .eq('id', paymentId);
     if (uerr) throw uerr;
 
-    return json({ status: newStatus, provider_transfer_id: result.providerTransferId, failure_reason: result.failureReason });
+    let transfer: Awaited<ReturnType<typeof createTransferForPayment>> | null = null;
+    if (newStatus === 'paid') {
+      try {
+        transfer = await createTransferForPayment(sb, paymentId);
+      } catch (e) {
+        console.error('[payment-initiate] transfer error', e);
+      }
+    }
+
+    return json({
+      status: newStatus,
+      provider_transfer_id: result.providerTransferId,
+      failure_reason: result.failureReason,
+      transfer,
+    });
   } catch (e) {
     console.error('[payment-initiate]', e);
     return json({ error: (e as Error).message }, 500);
