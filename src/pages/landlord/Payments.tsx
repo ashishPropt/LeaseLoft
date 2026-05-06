@@ -249,15 +249,16 @@ export default function LandlordPayments() {
               <th className="text-left font-medium px-6 py-4">Paid</th>
               <th className="text-left font-medium px-6 py-4">Method</th>
               <th className="text-left font-medium px-6 py-4">Status</th>
+              <th className="text-left font-medium px-6 py-4">Transfer</th>
               <th className="text-right font-medium px-6 py-4">Amount</th>
               <th className="text-right font-medium px-6 py-4">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
+              <tr><td colSpan={9} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">No payments match these filters.</td></tr>
+              <tr><td colSpan={9} className="px-6 py-12 text-center text-muted-foreground">No payments match these filters.</td></tr>
             ) : filtered.map(r => (
               <tr key={r.id} className="border-t border-border">
                 <td className="px-6 py-4 font-medium text-foreground">{r.tenant}</td>
@@ -270,14 +271,17 @@ export default function LandlordPayments() {
                     {r.status[0].toUpperCase() + r.status.slice(1)}
                   </StatusPill>
                 </td>
+                <td className="px-6 py-4">
+                  <TransferCell row={r} />
+                </td>
                 <td className="px-6 py-4 text-right font-mono font-medium text-foreground">{money(r.amount)}</td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
                     {r.status === "pending" && (
                       <Button size="sm" variant="outline" onClick={() => openEdit(r)}>Update</Button>
                     )}
-                    <Button size="sm" variant="ghost" onClick={() => openHistory(r)} title="View audit log">
-                      <History className="w-4 h-4" />
+                    <Button size="sm" variant="ghost" onClick={() => openHistory(r)} title="View timeline">
+                      <Activity className="w-4 h-4" />
                     </Button>
                   </div>
                 </td>
