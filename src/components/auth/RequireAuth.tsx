@@ -27,25 +27,7 @@ export const RequireAuth = ({ children, requireRole }: Props) => {
 
       const userId = session.user.id;
 
-      // 2FA enforced when the user has opted in (sms_2fa_consent on profile).
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("sms_2fa_consent, phone_e164")
-        .eq("id", userId)
-        .maybeSingle();
-      const mfaRequired = !!(profile?.sms_2fa_consent && profile?.phone_e164);
-      if (mfaRequired) {
-        const deviceId = getDeviceId();
-        const { data: mfa } = await supabase
-          .from("mfa_sessions")
-          .select("expires_at")
-          .eq("user_id", userId)
-          .eq("device_id", deviceId)
-          .maybeSingle();
-
-        const valid = mfa && new Date(mfa.expires_at) > new Date();
-        if (!valid) { if (!cancelled) setState("needs-mfa"); return; }
-      }
+      // 2FA temporarily disabled — MFA enforcement skipped.
 
       if (requireRole) {
         // Retry role lookup — PostgREST/RLS context can lag briefly after a fresh load.
