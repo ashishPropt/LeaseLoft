@@ -77,13 +77,18 @@ export default function LandlordInvite() {
     const code = makeCode();
     const { data: s } = await supabase.auth.getSession();
     if (!s.session) { setCreating(false); return; }
+    const prop = properties.find(p => p.id === form.property_id);
+    const unit = units.find(u => u.id === form.unit_id);
+    const propertyText = prop
+      ? unit ? `${prop.name} · ${unit.label}` : prop.name
+      : null;
     const { error } = await supabase.from("invite_codes").insert({
       code,
       role: "tenant",
       email: form.email,
       first_name: form.first_name,
       last_name: form.last_name || null,
-      property: form.property || null,
+      property: propertyText,
       note: form.note || null,
       created_by: s.session.user.id,
       created_by_name: creatorName,
@@ -93,7 +98,7 @@ export default function LandlordInvite() {
     setCreating(false);
     if (error) return toast({ title: "Could not create invite", description: error.message, variant: "destructive" });
     toast({ title: "Invite created", description: `Code ${code} ready to share.` });
-    setForm({ first_name: "", last_name: "", email: "", property: "", note: "" });
+    setForm({ first_name: "", last_name: "", email: "", property_id: "", unit_id: "", note: "" });
     load();
   }
 
