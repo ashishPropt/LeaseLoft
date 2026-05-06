@@ -217,7 +217,7 @@ export default function LandlordProfile() {
                 Refresh
               </Button>
               {!connect?.connected || partial ? (
-                <Button onClick={startOnboarding} disabled={connectLoading}>
+                <Button onClick={() => startOnboarding()} disabled={connectLoading}>
                   {connect?.connected ? "Continue onboarding" : "Connect with Stripe"}
                 </Button>
               ) : (
