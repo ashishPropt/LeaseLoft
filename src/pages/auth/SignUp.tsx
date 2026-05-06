@@ -435,23 +435,10 @@ const SignUp = () => {
                 <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                I consent to receive SMS codes for two-factor authentication at the number above.
+                We never sell or share your personal information with third parties for marketing.
               </div>
             </div>
           </label>
-
-          <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground leading-relaxed">
-            <p>
-              <span className="font-medium text-foreground">Your security matters.</span> LeaseLoft™ uses two-factor
-              authentication (2FA) via SMS to protect your account on every sign-in from a new device.
-            </p>
-            <p className="mt-2">
-              We never sell or share your personal information — including your phone number, email, or lease data —
-              with third parties for marketing. Your phone number is used only for 2FA and account security. Read our{" "}
-              <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link> and{" "}
-              <Link to="/terms" className="text-primary hover:underline">Terms of Use</Link>.
-            </p>
-          </div>
 
           <Button
             type="submit"
