@@ -8,8 +8,9 @@ import { toast } from "@/hooks/use-toast";
 import { initials } from "@/lib/format";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Landmark, ExternalLink, RefreshCw } from "lucide-react";
+import { Landmark, ExternalLink, RefreshCw, Unlink } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface ConnectStatus {
   connected: boolean;
