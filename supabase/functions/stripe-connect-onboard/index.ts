@@ -70,10 +70,26 @@ Deno.serve(async (req) => {
       }).eq('id', user.id);
     }
 
-    const body = await req.json().catch(() => ({}));
     const origin = (body.return_url_origin as string | undefined)
       || req.headers.get('origin')
       || 'https://leaseloft.ai';
+
+    // If a manual account was attached and onboarding already complete, skip account link.
+    if (manualAccountId) {
+      try {
+        const acct = await stripe(`/accounts/${accountId}`);
+        await sb.from('profiles').update({
+          stripe_connect_charges_enabled: !!acct.charges_enabled,
+          stripe_connect_payouts_enabled: !!acct.payouts_enabled,
+          stripe_connect_details_submitted: !!acct.details_submitted,
+          stripe_connect_updated_at: new Date().toISOString(),
+        }).eq('id', user.id);
+        if (acct.details_submitted) {
+          return json({ url: null, account_id: accountId, attached: true });
+        }
+      } catch (_e) { /* fall through to create link */ }
+    }
+
 
     const link = await stripe('/account_links', {
       account: accountId!,
