@@ -7,6 +7,7 @@ import { StatusPill } from "@/components/layout/StatusPill";
 import { Button } from "@/components/ui/button";
 import { money, shortDate } from "@/lib/format";
 import { toast } from "sonner";
+import { LeaseDocuments } from "@/components/documents/LeaseDocuments";
 
 interface LeaseRow {
   id: string;
