@@ -132,8 +132,34 @@ export default function LandlordInvite() {
               <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
             </div>
             <div>
-              <Label>Property / unit (optional)</Label>
-              <Input placeholder="e.g. 215 Maple Ave · 4B" value={form.property} onChange={e => setForm({ ...form, property: e.target.value })} />
+              <Label>Property (optional)</Label>
+              <Select value={form.property_id || "none"} onValueChange={v => setForm({ ...form, property_id: v === "none" ? "" : v, unit_id: "" })}>
+                <SelectTrigger><SelectValue placeholder="Select property" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No property</SelectItem>
+                  {properties.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Unit (optional)</Label>
+              <Select
+                value={form.unit_id || "none"}
+                onValueChange={v => setForm({ ...form, unit_id: v === "none" ? "" : v })}
+                disabled={!form.property_id || units.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!form.property_id ? "Select a property first" : units.length === 0 ? "No units" : "Select unit"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No unit</SelectItem>
+                  {units.map(u => (
+                    <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button className="w-full" onClick={createInvite} disabled={creating}>
               <Plus className="w-4 h-4 mr-2" />{creating ? "Creating…" : "Create invite code"}
