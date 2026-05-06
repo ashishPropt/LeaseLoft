@@ -76,17 +76,30 @@ export default function LandlordProfile() {
     }
   }, [searchParams, setSearchParams, refreshConnect]);
 
-  async function startOnboarding() {
+  const [manualAcct, setManualAcct] = useState("");
+
+  async function startOnboarding(accountId?: string) {
     setConnectLoading(true);
     const { data, error } = await supabase.functions.invoke("stripe-connect-onboard", {
-      body: { return_url_origin: window.location.origin },
+      body: {
+        return_url_origin: window.location.origin,
+        ...(accountId ? { account_id: accountId } : {}),
+      },
     });
     setConnectLoading(false);
-    if (error || !data?.url) {
+    if (error) {
       toast({ title: "Could not start Stripe onboarding", description: error?.message, variant: "destructive" });
       return;
     }
-    window.location.href = data.url as string;
+    if (data?.url) {
+      window.location.href = data.url as string;
+      return;
+    }
+    if (data?.attached) {
+      toast({ title: "Test account attached" });
+      setManualAcct("");
+      refreshConnect();
+    }
   }
 
   async function openDashboard() {
