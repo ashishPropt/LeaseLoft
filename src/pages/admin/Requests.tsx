@@ -136,7 +136,7 @@ export default function AdminRequests() {
       last_name: req.last_name,
       created_by_name: creatorName,
       max_uses: 1,
-      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     });
     if (inviteErr) {
       setBusyId(null);
