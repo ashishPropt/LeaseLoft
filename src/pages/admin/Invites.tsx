@@ -75,7 +75,7 @@ export default function AdminInvites() {
       note: form.note || null,
       created_by_name: creatorName,
       max_uses: 1,
-      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     });
     setCreating(false);
     if (error) return toast({ title: "Could not create invite", description: error.message, variant: "destructive" });
