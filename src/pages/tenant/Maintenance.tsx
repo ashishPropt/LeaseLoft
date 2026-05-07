@@ -47,7 +47,9 @@ export default function TenantMaintenance() {
     if (!ctx?.lease || !ctx.userId) return;
     if (!form.title.trim()) return toast({ title: "Title is required", variant: "destructive" });
     setSubmitting(true);
+    const newId = crypto.randomUUID();
     const { error } = await supabase.from("maintenance_requests").insert({
+      id: newId,
       lease_id: ctx.lease.id,
       created_by: ctx.userId,
       title: form.title,
@@ -56,11 +58,60 @@ export default function TenantMaintenance() {
     });
     setSubmitting(false);
     if (error) return toast({ title: "Could not submit", description: error.message, variant: "destructive" });
+
+    // Notify landlord (best-effort, non-blocking)
+    try {
+      const [{ data: lease }, { data: tenantProf }] = await Promise.all([
+        supabase.from("leases").select("landlord_id, unit_id").eq("id", ctx.lease.id).maybeSingle(),
+        supabase.from("profiles").select("full_name,first_name,last_name,email").eq("id", ctx.userId).maybeSingle(),
+      ]);
+      if (lease?.landlord_id) {
+        const { data: landlordProf } = await supabase
+          .from("profiles")
+          .select("email,full_name,first_name")
+          .eq("id", lease.landlord_id)
+          .maybeSingle();
+        const { data: unit } = await supabase
+          .from("units")
+          .select("label, property_id")
+          .eq("id", lease.unit_id)
+          .maybeSingle();
+        const { data: prop } = unit?.property_id
+          ? await supabase.from("properties").select("name").eq("id", unit.property_id).maybeSingle()
+          : { data: null as any };
+        if (landlordProf?.email) {
+          const tenantName = tenantProf?.full_name
+            || `${tenantProf?.first_name ?? ""} ${tenantProf?.last_name ?? ""}`.trim()
+            || tenantProf?.email || "Your tenant";
+          const landlordName = landlordProf.full_name || landlordProf.first_name || "";
+          await supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "maintenance-request-created",
+              recipientEmail: landlordProf.email,
+              idempotencyKey: `maint-created-${newId}`,
+              templateData: {
+                landlordName,
+                tenantName,
+                unitLabel: unit?.label ?? "",
+                propertyName: prop?.name ?? "",
+                title: form.title,
+                description: form.description || "",
+                priority: form.priority[0].toUpperCase() + form.priority.slice(1),
+              },
+            },
+          });
+        }
+      }
+    } catch (e) {
+      console.error("notify landlord failed", e);
+    }
+
     toast({ title: "Request submitted" });
     setForm({ title: "", description: "", priority: "medium" });
     setOpen(false);
     load();
   }
+
 
   return (
     <TenantLayout crumbs={["Maintenance"]}>

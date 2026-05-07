@@ -70,9 +70,61 @@ export default function LandlordMaintenance() {
     if (status === "resolved") patch.resolved_at = new Date().toISOString();
     const { error } = await supabase.from("maintenance_requests").update(patch).eq("id", id);
     if (error) return toast({ title: "Update failed", description: error.message, variant: "destructive" });
+
+    // Notify tenant (best-effort, non-blocking)
+    try {
+      const { data: m } = await supabase
+        .from("maintenance_requests")
+        .select("title, lease_id")
+        .eq("id", id)
+        .maybeSingle();
+      if (m?.lease_id) {
+        const { data: lease } = await supabase
+          .from("leases")
+          .select("tenant_id, unit_id")
+          .eq("id", m.lease_id)
+          .maybeSingle();
+        if (lease?.tenant_id) {
+          const { data: tenantProf } = await supabase
+            .from("profiles")
+            .select("email, full_name, first_name")
+            .eq("id", lease.tenant_id)
+            .maybeSingle();
+          const { data: unit } = await supabase
+            .from("units")
+            .select("label, property_id")
+            .eq("id", lease.unit_id)
+            .maybeSingle();
+          const { data: prop } = unit?.property_id
+            ? await supabase.from("properties").select("name").eq("id", unit.property_id).maybeSingle()
+            : { data: null as any };
+          if (tenantProf?.email) {
+            const tenantName = tenantProf.full_name || tenantProf.first_name || "";
+            await supabase.functions.invoke("send-transactional-email", {
+              body: {
+                templateName: "maintenance-request-updated",
+                recipientEmail: tenantProf.email,
+                idempotencyKey: `maint-updated-${id}-${status}`,
+                templateData: {
+                  tenantName,
+                  title: m.title,
+                  newStatus: status,
+                  propertyName: prop?.name ?? "",
+                  unitLabel: unit?.label ?? "",
+                },
+              },
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("notify tenant failed", e);
+    }
+
     toast({ title: "Status updated" });
     load();
   }
+
 
   return (
     <LandlordLayout crumbs={["Maintenance"]}>
