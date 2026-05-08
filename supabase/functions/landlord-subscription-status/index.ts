@@ -12,6 +12,13 @@ async function stripeGet(path: string) {
   return j;
 }
 
+type Sub = { id: string; status: string; current_period_end: number; customer: string; items: { data: Array<{ price: { id: string }, current_period_end?: number }> } };
+
+function pickPeriodEnd(s: Sub | undefined): number | null {
+  if (!s) return null;
+  return s.current_period_end ?? s.items?.data?.[0]?.current_period_end ?? null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
@@ -21,34 +28,67 @@ Deno.serve(async (req) => {
     const sb = serviceClient();
     const { data: profile } = await sb
       .from('profiles')
-      .select('stripe_customer_id, stripe_subscription_id, subscription_price_id')
+      .select('stripe_customer_id, stripe_subscription_id, subscription_price_id, email')
       .eq('id', user.id)
       .maybeSingle();
 
-    if (!profile?.stripe_customer_id) {
+    const email = profile?.email ?? user.email ?? null;
+
+    // Collect candidate customer IDs: stored + any matching the user's email in Stripe.
+    // Pricing Tables can create a NEW customer at checkout time, distinct from the one
+    // we created server-side. We need to look across all of them.
+    const customerIds = new Set<string>();
+    if (profile?.stripe_customer_id) customerIds.add(profile.stripe_customer_id);
+
+    if (email) {
+      try {
+        const search = await stripeGet(`/customers/search?query=${encodeURIComponent(`email:"${email}"`)}&limit=20`);
+        for (const c of (search.data ?? []) as Array<{ id: string }>) customerIds.add(c.id);
+      } catch (e) {
+        console.warn('[landlord-subscription-status] customer search failed', (e as Error).message);
+      }
+    }
+
+    if (customerIds.size === 0) {
       return json({ active: false, has_price: !!profile?.subscription_price_id, status: null });
     }
 
-    // Find active/trialing subscriptions for this customer.
-    const subs = await stripeGet(`/subscriptions?customer=${profile.stripe_customer_id}&status=all&limit=10`);
-    const list = (subs.data ?? []) as Array<{ id: string; status: string; current_period_end: number; items: { data: Array<{ price: { id: string } }> } }>;
-    // Prefer one matching the assigned price; else most recent active/trialing.
-    const matching = list.find((s) => s.items?.data?.some((it) => it.price?.id === profile.subscription_price_id) && ['active', 'trialing'].includes(s.status))
-      ?? list.find((s) => ['active', 'trialing'].includes(s.status));
+    // Fetch subs across all candidate customers.
+    const all: Sub[] = [];
+    for (const cid of customerIds) {
+      try {
+        const subs = await stripeGet(`/subscriptions?customer=${cid}&status=all&limit=10`);
+        for (const s of (subs.data ?? []) as Sub[]) all.push(s);
+      } catch (e) {
+        console.warn('[landlord-subscription-status] list failed for', cid, (e as Error).message);
+      }
+    }
 
-    const status = matching?.status ?? list[0]?.status ?? null;
-    const subId = matching?.id ?? list[0]?.id ?? null;
-    const periodEnd = matching?.current_period_end ?? list[0]?.current_period_end ?? null;
-    const active = !!matching;
+    // Prefer one matching the assigned price; else most recent active/trialing; else most recent.
+    const matching =
+      all.find((s) => s.items?.data?.some((it) => it.price?.id === profile?.subscription_price_id) && ['active', 'trialing'].includes(s.status))
+      ?? all.find((s) => ['active', 'trialing'].includes(s.status))
+      ?? all[0];
 
-    await sb.from('profiles').update({
+    const status = matching?.status ?? null;
+    const subId = matching?.id ?? null;
+    const periodEnd = pickPeriodEnd(matching);
+    const active = !!matching && ['active', 'trialing'].includes(matching.status);
+
+    const updates: Record<string, unknown> = {
       stripe_subscription_id: subId,
       stripe_subscription_status: status,
       subscription_current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       subscription_updated_at: new Date().toISOString(),
-    }).eq('id', user.id);
+    };
+    // If the active subscription belongs to a different customer than what we had stored,
+    // update it so future lookups are direct.
+    if (matching?.customer && matching.customer !== profile?.stripe_customer_id) {
+      updates.stripe_customer_id = matching.customer;
+    }
+    await sb.from('profiles').update(updates).eq('id', user.id);
 
-    return json({ active, status, has_price: !!profile.subscription_price_id, current_period_end: periodEnd });
+    return json({ active, status, has_price: !!profile?.subscription_price_id, current_period_end: periodEnd });
   } catch (e) {
     console.error('[landlord-subscription-status]', e);
     return json({ error: (e as Error).message }, 500);
