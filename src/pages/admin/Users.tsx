@@ -130,9 +130,9 @@ export default function AdminUsers() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">No users match.</td></tr>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">No users match.</td></tr>
             ) : filtered.map(u => (
               <tr key={u.id} className="border-t border-border align-top">
                 <td className="px-6 py-4">
