@@ -99,8 +99,9 @@ export default function LandlordProfile() {
       }
       setLoading(false);
       refreshConnect();
+      refreshSubs();
     })();
-  }, [refreshConnect]);
+  }, [refreshConnect, refreshSubs]);
 
   // After returning from Stripe, refresh status and clean URL.
   useEffect(() => {
