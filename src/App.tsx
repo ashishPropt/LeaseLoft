@@ -20,6 +20,8 @@ import LandlordLeaseForm from "./pages/landlord/LeaseForm.tsx";
 import LandlordProperties from "./pages/landlord/Properties.tsx";
 import LandlordPropertyDetail from "./pages/landlord/PropertyDetail.tsx";
 import LandlordProfile from "./pages/landlord/Profile.tsx";
+import LandlordSetup from "./pages/landlord/Setup.tsx";
+import { RequireLandlordSetup } from "./components/auth/RequireLandlordSetup.tsx";
 import AdminUsers from "./pages/admin/Users.tsx";
 import AdminInvites from "./pages/admin/Invites.tsx";
 import AdminRequests from "./pages/admin/Requests.tsx";
