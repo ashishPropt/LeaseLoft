@@ -7,12 +7,18 @@ import { CheckCircle2, Circle, CreditCard, Landmark, RefreshCw } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useLandlordGate } from "@/lib/useLandlordGate";
+import { StripePricingTable } from "@/components/payments/StripePricingTable";
 
 export default function LandlordSetup() {
   const gate = useLandlordGate();
   const [busy, setBusy] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id ?? null));
+  }, []);
 
   const refreshSub = useCallback(async () => {
     await supabase.functions.invoke("landlord-subscription-status");
