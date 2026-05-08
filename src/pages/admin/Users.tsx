@@ -124,6 +124,7 @@ export default function AdminUsers() {
               <th className="text-left font-medium px-6 py-4">Phone</th>
               <th className="text-left font-medium px-6 py-4">Joined</th>
               <th className="text-left font-medium px-6 py-4">Roles</th>
+              <th className="text-left font-medium px-6 py-4">Plan price ID</th>
               <th className="text-right font-medium px-6 py-4">Manage roles</th>
             </tr>
           </thead>
