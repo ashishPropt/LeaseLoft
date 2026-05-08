@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
         type: 'express',
         email: profile?.email ?? user.email ?? '',
         'capabilities[transfers][requested]': 'true',
-        'capabilities[us_bank_account_ach_payments][requested]': 'true',
+        'capabilities[card_payments][requested]': 'true',
         country: 'US',
         'business_type': 'individual',
         'metadata[user_id]': user.id,
