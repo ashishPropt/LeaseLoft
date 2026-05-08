@@ -138,7 +138,6 @@ export default function LandlordSetup() {
               />
             </div>
           )}
-          </div>
         </div>
       </div>
     </LandlordLayout>
