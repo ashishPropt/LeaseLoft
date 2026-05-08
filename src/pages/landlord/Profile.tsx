@@ -52,7 +52,20 @@ export default function LandlordProfile() {
   const [userId, setUserId] = useState<string | null>(null);
   const [connect, setConnect] = useState<ConnectStatus | null>(null);
   const [connectLoading, setConnectLoading] = useState(false);
+  const [subs, setSubs] = useState<SubscriptionRow[]>([]);
+  const [subsLoading, setSubsLoading] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const refreshSubs = useCallback(async () => {
+    setSubsLoading(true);
+    const { data, error } = await supabase.functions.invoke("landlord-subscription-status");
+    setSubsLoading(false);
+    if (error) {
+      toast({ title: "Could not load subscriptions", description: error.message, variant: "destructive" });
+      return;
+    }
+    setSubs(((data as any)?.subscriptions ?? []) as SubscriptionRow[]);
+  }, []);
 
   const refreshConnect = useCallback(async (withLogin = false) => {
     setConnectLoading(true);
