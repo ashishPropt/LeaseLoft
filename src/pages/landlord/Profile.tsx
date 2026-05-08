@@ -8,7 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { initials } from "@/lib/format";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Landmark, ExternalLink, RefreshCw, Unlink } from "lucide-react";
+import { Landmark, ExternalLink, RefreshCw, Unlink, CreditCard } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
@@ -21,6 +21,28 @@ interface ConnectStatus {
   login_url?: string;
 }
 
+interface SubscriptionRow {
+  id: string;
+  status: string;
+  current_period_end: number | null;
+  cancel_at_period_end: boolean;
+  amount: number | null;
+  currency: string | null;
+  interval: string | null;
+  interval_count: number;
+  nickname: string | null;
+  price_id: string | null;
+}
+
+function formatMoney(amount: number | null, currency: string | null) {
+  if (amount == null || !currency) return "—";
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: currency.toUpperCase() }).format(amount / 100);
+  } catch {
+    return `${(amount / 100).toFixed(2)} ${currency.toUpperCase()}`;
+  }
+}
+
 export default function LandlordProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,7 +52,20 @@ export default function LandlordProfile() {
   const [userId, setUserId] = useState<string | null>(null);
   const [connect, setConnect] = useState<ConnectStatus | null>(null);
   const [connectLoading, setConnectLoading] = useState(false);
+  const [subs, setSubs] = useState<SubscriptionRow[]>([]);
+  const [subsLoading, setSubsLoading] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const refreshSubs = useCallback(async () => {
+    setSubsLoading(true);
+    const { data, error } = await supabase.functions.invoke("landlord-subscription-status");
+    setSubsLoading(false);
+    if (error) {
+      toast({ title: "Could not load subscriptions", description: error.message, variant: "destructive" });
+      return;
+    }
+    setSubs(((data as any)?.subscriptions ?? []) as SubscriptionRow[]);
+  }, []);
 
   const refreshConnect = useCallback(async (withLogin = false) => {
     setConnectLoading(true);
@@ -64,8 +99,9 @@ export default function LandlordProfile() {
       }
       setLoading(false);
       refreshConnect();
+      refreshSubs();
     })();
-  }, [refreshConnect]);
+  }, [refreshConnect, refreshSubs]);
 
   // After returning from Stripe, refresh status and clean URL.
   useEffect(() => {
@@ -264,6 +300,60 @@ export default function LandlordProfile() {
             </div>
           </div>
 
+        </div>
+
+        {/* Subscriptions */}
+        <div className="lg:col-span-3 rounded-xl border border-border bg-card p-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-muted-foreground" />
+                <h2 className="font-semibold text-foreground">Subscription</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Your active platform subscription.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={refreshSubs} disabled={subsLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${subsLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+
+          <div className="mt-5">
+            {subsLoading && subs.length === 0 ? (
+              <div className="text-sm text-muted-foreground">Loading…</div>
+            ) : subs.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No subscriptions found.</div>
+            ) : (
+              <div className="divide-y divide-border rounded-lg border border-border">
+                {subs.map((s) => {
+                  const active = ["active", "trialing"].includes(s.status);
+                  const renews = s.current_period_end
+                    ? new Date(s.current_period_end * 1000).toLocaleDateString()
+                    : null;
+                  return (
+                    <div key={s.id} className="p-4 flex items-start justify-between gap-4 flex-wrap">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="font-medium text-foreground">{s.nickname ?? "Subscription"}</div>
+                          <Badge variant={active ? "secondary" : "outline"} className="capitalize">
+                            {s.status.replace("_", " ")}
+                          </Badge>
+                          {s.cancel_at_period_end && <Badge variant="outline">Cancels at period end</Badge>}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {formatMoney(s.amount, s.currency)}
+                          {s.interval ? ` / ${s.interval_count > 1 ? `${s.interval_count} ` : ""}${s.interval}` : ""}
+                          {renews ? ` · ${s.cancel_at_period_end ? "Ends" : "Renews"} ${renews}` : ""}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
       </div>

@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     const all: Sub[] = [];
     for (const cid of customerIds) {
       try {
-        const subs = await stripeGet(`/subscriptions?customer=${cid}&status=all&limit=10`);
+        const subs = await stripeGet(`/subscriptions?customer=${cid}&status=all&limit=10&expand[]=data.items.data.price.product`);
         for (const s of (subs.data ?? []) as Sub[]) all.push(s);
       } catch (e) {
         console.warn('[landlord-subscription-status] list failed for', cid, (e as Error).message);
@@ -88,7 +88,28 @@ Deno.serve(async (req) => {
     }
     await sb.from('profiles').update(updates).eq('id', user.id);
 
-    return json({ active, status, has_price: !!profile?.subscription_price_id, current_period_end: periodEnd });
+    const subscriptions = all.map((s: any) => {
+      const item = s.items?.data?.[0];
+      const price = item?.price ?? {};
+      const product = price.product && typeof price.product === 'object' ? price.product : null;
+      return {
+        id: s.id,
+        status: s.status,
+        current_period_end: pickPeriodEnd(s),
+        cancel_at_period_end: s.cancel_at_period_end ?? false,
+        amount: price.unit_amount ?? null,
+        currency: price.currency ?? null,
+        interval: price.recurring?.interval ?? null,
+        interval_count: price.recurring?.interval_count ?? 1,
+        nickname: price.nickname ?? product?.name ?? price.lookup_key ?? null,
+        price_id: price.id ?? null,
+      };
+    }).sort((a, b) => {
+      const rank = (st: string) => (['active','trialing'].includes(st) ? 0 : st === 'past_due' ? 1 : 2);
+      return rank(a.status) - rank(b.status);
+    });
+
+    return json({ active, status, has_price: !!profile?.subscription_price_id, current_period_end: periodEnd, subscriptions });
   } catch (e) {
     console.error('[landlord-subscription-status]', e);
     return json({ error: (e as Error).message }, 500);
