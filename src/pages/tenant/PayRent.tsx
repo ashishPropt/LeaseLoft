@@ -222,10 +222,21 @@ export default function TenantPayRent() {
             </div>
 
             <Button className="w-full" onClick={pay} disabled={submitting || methods.length === 0}>
-              <CreditCard className="w-4 h-4 mr-2" />
-              {submitting ? "Processing…" : `Pay ${money(Number(amount) || 0)}`}
+              <Landmark className="w-4 h-4 mr-2" />
+              {submitting ? "Processing…" : `Pay ${money(Number(amount) || 0)} via ACH`}
             </Button>
-            <p className="text-xs text-muted-foreground">Bank-to-bank transfer (ACH). Funds typically clear in 1–3 business days.</p>
+            <p className="text-xs text-muted-foreground">Bank-to-bank transfer (ACH). Funds typically clear in 1–3 business days. No extra fee.</p>
+
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+              <div className="relative flex justify-center"><span className="bg-card px-2 text-xs text-muted-foreground">or</span></div>
+            </div>
+
+            <Button variant="outline" className="w-full" onClick={payWithCard} disabled={cardLoading}>
+              <CreditCard className="w-4 h-4 mr-2" />
+              {cardLoading ? "Redirecting…" : `Pay ${money(Number(amount) || 0)} by card`}
+            </Button>
+            <p className="text-xs text-muted-foreground">Credit or debit card (incl. Apple Pay & Google Pay). Posts immediately.</p>
           </div>
         </div>
 
