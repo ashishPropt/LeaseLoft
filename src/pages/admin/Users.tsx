@@ -188,3 +188,24 @@ export default function AdminUsers() {
     </AdminLayout>
   );
 }
+
+function PriceIdEditor({ initial, status, onSave }: { initial: string; status: string | null; onSave: (v: string) => void | Promise<void> }) {
+  const [value, setValue] = useState(initial);
+  const dirty = value.trim() !== initial.trim();
+  return (
+    <div className="flex items-center gap-2 min-w-[260px]">
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="price_..."
+        className="h-8 text-xs font-mono"
+      />
+      <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={!dirty} onClick={() => onSave(value)}>
+        Save
+      </Button>
+      {status && (
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{status}</span>
+      )}
+    </div>
+  );
+}
