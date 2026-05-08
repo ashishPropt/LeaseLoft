@@ -21,6 +21,28 @@ interface ConnectStatus {
   login_url?: string;
 }
 
+interface SubscriptionRow {
+  id: string;
+  status: string;
+  current_period_end: number | null;
+  cancel_at_period_end: boolean;
+  amount: number | null;
+  currency: string | null;
+  interval: string | null;
+  interval_count: number;
+  nickname: string | null;
+  price_id: string | null;
+}
+
+function formatMoney(amount: number | null, currency: string | null) {
+  if (amount == null || !currency) return "—";
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: currency.toUpperCase() }).format(amount / 100);
+  } catch {
+    return `${(amount / 100).toFixed(2)} ${currency.toUpperCase()}`;
+  }
+}
+
 export default function LandlordProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
