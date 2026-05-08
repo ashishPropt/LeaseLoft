@@ -20,6 +20,45 @@ export default function TenantPayRent() {
   const [pending, setPending] = useState<{ id: string; amount: number; due_date: string; status: string } | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string>("");
   const [success, setSuccess] = useState(false);
+  const [cardLoading, setCardLoading] = useState(false);
+
+  async function ensurePaymentId(amt: number): Promise<string | null> {
+    if (pending?.id) return pending.id;
+    if (!ctx?.lease) return null;
+    const { data, error } = await supabase
+      .from("payments")
+      .insert({
+        lease_id: ctx.lease.id,
+        amount: amt,
+        due_date: new Date().toISOString().slice(0, 10),
+        status: "pending",
+        method: "card",
+      })
+      .select("id")
+      .single();
+    if (error || !data) {
+      toast({ title: "Could not create payment", description: error?.message, variant: "destructive" });
+      return null;
+    }
+    return data.id;
+  }
+
+  async function payWithCard() {
+    if (!ctx?.lease) return;
+    const amt = Number(amount);
+    if (!amt || amt <= 0) return toast({ title: "Enter a valid amount", variant: "destructive" });
+    setCardLoading(true);
+    const paymentId = await ensurePaymentId(amt);
+    if (!paymentId) { setCardLoading(false); return; }
+    const { data, error } = await supabase.functions.invoke("payment-card-checkout", {
+      body: { payment_id: paymentId, return_origin: window.location.origin },
+    });
+    setCardLoading(false);
+    if (error || !data?.url) {
+      return toast({ title: "Could not start card checkout", description: error?.message, variant: "destructive" });
+    }
+    window.location.href = data.url as string;
+  }
 
   useEffect(() => {
     if (!ctx?.lease) return;
