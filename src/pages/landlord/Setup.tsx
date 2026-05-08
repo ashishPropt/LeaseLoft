@@ -121,12 +121,23 @@ export default function LandlordSetup() {
                 <RefreshCw className={`w-4 h-4 mr-2 ${gate.loading ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
-              {!gate.subscriptionOk && (
+              {!gate.subscriptionOk && !gate.pricingTableId && (
                 <Button onClick={startSubscribe} disabled={busy || gate.loading || !gate.hasPrice}>
                   Subscribe
                 </Button>
               )}
             </div>
+          </div>
+
+          {!gate.subscriptionOk && gate.pricingTableId && (
+            <div className="mt-6 -mx-2">
+              <StripePricingTable
+                pricingTableId={gate.pricingTableId}
+                customerEmail={gate.email}
+                clientReferenceId={userId}
+              />
+            </div>
+          )}
           </div>
         </div>
       </div>
