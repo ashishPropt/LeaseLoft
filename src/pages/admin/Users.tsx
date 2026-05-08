@@ -19,6 +19,7 @@ interface UserRow {
   created_at: string;
   roles: Role[];
   subscription_price_id: string | null;
+  stripe_pricing_table_id: string | null;
   stripe_subscription_status: string | null;
 }
 
@@ -37,7 +38,7 @@ export default function AdminUsers() {
   async function load() {
     setLoading(true);
     const [{ data: profs }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("id,full_name,first_name,last_name,email,phone_e164,created_at,subscription_price_id,stripe_subscription_status"),
+      supabase.from("profiles").select("id,full_name,first_name,last_name,email,phone_e164,created_at,subscription_price_id,stripe_pricing_table_id,stripe_subscription_status"),
       supabase.from("user_roles").select("user_id,role"),
     ]);
     const rolesByUser = new Map<string, Role[]>();
@@ -54,6 +55,7 @@ export default function AdminUsers() {
       created_at: p.created_at,
       roles: rolesByUser.get(p.id) ?? [],
       subscription_price_id: p.subscription_price_id,
+      stripe_pricing_table_id: p.stripe_pricing_table_id,
       stripe_subscription_status: p.stripe_subscription_status,
     })).sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)));
     setLoading(false);
