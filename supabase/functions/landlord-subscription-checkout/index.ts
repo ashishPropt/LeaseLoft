@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
     const session = await stripe('/checkout/sessions', {
       mode: 'subscription',
       customer: customerId!,
+      'payment_method_types[]': 'card',
       'line_items[0][price]': priceId,
       'line_items[0][quantity]': '1',
       success_url: `${origin}/landlord/setup?sub_return=1`,
