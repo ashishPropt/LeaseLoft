@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     const all: Sub[] = [];
     for (const cid of customerIds) {
       try {
-        const subs = await stripeGet(`/subscriptions?customer=${cid}&status=all&limit=10`);
+        const subs = await stripeGet(`/subscriptions?customer=${cid}&status=all&limit=10&expand[]=data.items.data.price.product`);
         for (const s of (subs.data ?? []) as Sub[]) all.push(s);
       } catch (e) {
         console.warn('[landlord-subscription-status] list failed for', cid, (e as Error).message);
