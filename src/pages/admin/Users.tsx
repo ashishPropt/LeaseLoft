@@ -157,7 +157,7 @@ export default function AdminUsers() {
                     <PriceIdEditor
                       initial={u.subscription_price_id ?? ""}
                       status={u.stripe_subscription_status}
-                      onSave={(v) => savePriceId(u.id, v)}
+                      onSave={async (v) => { await savePriceId(u.id, v); }}
                     />
                   ) : <span className="text-muted-foreground text-xs">—</span>}
                 </td>
