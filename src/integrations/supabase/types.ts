@@ -611,6 +611,12 @@ export type Database = {
           stripe_connect_details_submitted: boolean
           stripe_connect_payouts_enabled: boolean
           stripe_connect_updated_at: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          stripe_subscription_status: string | null
+          subscription_current_period_end: string | null
+          subscription_price_id: string | null
+          subscription_updated_at: string | null
           updated_at: string
         }
         Insert: {
@@ -630,6 +636,12 @@ export type Database = {
           stripe_connect_details_submitted?: boolean
           stripe_connect_payouts_enabled?: boolean
           stripe_connect_updated_at?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_subscription_status?: string | null
+          subscription_current_period_end?: string | null
+          subscription_price_id?: string | null
+          subscription_updated_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -649,6 +661,12 @@ export type Database = {
           stripe_connect_details_submitted?: boolean
           stripe_connect_payouts_enabled?: boolean
           stripe_connect_updated_at?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_subscription_status?: string | null
+          subscription_current_period_end?: string | null
+          subscription_price_id?: string | null
+          subscription_updated_at?: string | null
           updated_at?: string
         }
         Relationships: []
