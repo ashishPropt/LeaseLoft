@@ -612,6 +612,7 @@ export type Database = {
           stripe_connect_payouts_enabled: boolean
           stripe_connect_updated_at: string | null
           stripe_customer_id: string | null
+          stripe_pricing_table_id: string | null
           stripe_subscription_id: string | null
           stripe_subscription_status: string | null
           subscription_current_period_end: string | null
@@ -637,6 +638,7 @@ export type Database = {
           stripe_connect_payouts_enabled?: boolean
           stripe_connect_updated_at?: string | null
           stripe_customer_id?: string | null
+          stripe_pricing_table_id?: string | null
           stripe_subscription_id?: string | null
           stripe_subscription_status?: string | null
           subscription_current_period_end?: string | null
@@ -662,6 +664,7 @@ export type Database = {
           stripe_connect_payouts_enabled?: boolean
           stripe_connect_updated_at?: string | null
           stripe_customer_id?: string | null
+          stripe_pricing_table_id?: string | null
           stripe_subscription_id?: string | null
           stripe_subscription_status?: string | null
           subscription_current_period_end?: string | null
