@@ -70,6 +70,14 @@ export default function AdminUsers() {
     load();
   }
 
+  async function savePricingTableId(userId: string, ptId: string) {
+    const value = ptId.trim() || null;
+    const { error } = await supabase.from("profiles").update({ stripe_pricing_table_id: value }).eq("id", userId);
+    if (error) return toast({ title: "Could not save pricing table ID", description: error.message, variant: "destructive" });
+    toast({ title: value ? "Pricing table ID saved" : "Pricing table ID cleared" });
+    load();
+  }
+
   async function assign(userId: string, role: Role) {
     const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
     if (error && !error.message.includes("duplicate")) {
