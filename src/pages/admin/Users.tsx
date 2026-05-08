@@ -18,6 +18,8 @@ interface UserRow {
   phone: string | null;
   created_at: string;
   roles: Role[];
+  subscription_price_id: string | null;
+  stripe_subscription_status: string | null;
 }
 
 const roleTone: Record<Role, "success" | "info" | "muted"> = {
@@ -35,7 +37,7 @@ export default function AdminUsers() {
   async function load() {
     setLoading(true);
     const [{ data: profs }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("id,full_name,first_name,last_name,email,phone_e164,created_at"),
+      supabase.from("profiles").select("id,full_name,first_name,last_name,email,phone_e164,created_at,subscription_price_id,stripe_subscription_status"),
       supabase.from("user_roles").select("user_id,role"),
     ]);
     const rolesByUser = new Map<string, Role[]>();
@@ -51,10 +53,20 @@ export default function AdminUsers() {
       phone: p.phone_e164,
       created_at: p.created_at,
       roles: rolesByUser.get(p.id) ?? [],
+      subscription_price_id: p.subscription_price_id,
+      stripe_subscription_status: p.stripe_subscription_status,
     })).sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)));
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
+
+  async function savePriceId(userId: string, priceId: string) {
+    const value = priceId.trim() || null;
+    const { error } = await supabase.from("profiles").update({ subscription_price_id: value }).eq("id", userId);
+    if (error) return toast({ title: "Could not save price ID", description: error.message, variant: "destructive" });
+    toast({ title: value ? "Plan price ID saved" : "Plan price ID cleared" });
+    load();
+  }
 
   async function assign(userId: string, role: Role) {
     const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
@@ -112,14 +124,15 @@ export default function AdminUsers() {
               <th className="text-left font-medium px-6 py-4">Phone</th>
               <th className="text-left font-medium px-6 py-4">Joined</th>
               <th className="text-left font-medium px-6 py-4">Roles</th>
+              <th className="text-left font-medium px-6 py-4">Plan price ID</th>
               <th className="text-right font-medium px-6 py-4">Manage roles</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">Loading…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">No users match.</td></tr>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">No users match.</td></tr>
             ) : filtered.map(u => (
               <tr key={u.id} className="border-t border-border align-top">
                 <td className="px-6 py-4">
@@ -138,6 +151,15 @@ export default function AdminUsers() {
                       <StatusPill key={r} tone={roleTone[r]}>{r}</StatusPill>
                     ))}
                   </div>
+                </td>
+                <td className="px-6 py-4">
+                  {u.roles.includes("landlord") ? (
+                    <PriceIdEditor
+                      initial={u.subscription_price_id ?? ""}
+                      status={u.stripe_subscription_status}
+                      onSave={async (v) => { await savePriceId(u.id, v); }}
+                    />
+                  ) : <span className="text-muted-foreground text-xs">—</span>}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex flex-wrap justify-end gap-1.5">
@@ -164,5 +186,26 @@ export default function AdminUsers() {
         </table>
       </div>
     </AdminLayout>
+  );
+}
+
+function PriceIdEditor({ initial, status, onSave }: { initial: string; status: string | null; onSave: (v: string) => void | Promise<void> }) {
+  const [value, setValue] = useState(initial);
+  const dirty = value.trim() !== initial.trim();
+  return (
+    <div className="flex items-center gap-2 min-w-[260px]">
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="price_..."
+        className="h-8 text-xs font-mono"
+      />
+      <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={!dirty} onClick={() => onSave(value)}>
+        Save
+      </Button>
+      {status && (
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{status}</span>
+      )}
+    </div>
   );
 }

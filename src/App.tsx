@@ -20,6 +20,8 @@ import LandlordLeaseForm from "./pages/landlord/LeaseForm.tsx";
 import LandlordProperties from "./pages/landlord/Properties.tsx";
 import LandlordPropertyDetail from "./pages/landlord/PropertyDetail.tsx";
 import LandlordProfile from "./pages/landlord/Profile.tsx";
+import LandlordSetup from "./pages/landlord/Setup.tsx";
+import { RequireLandlordSetup } from "./components/auth/RequireLandlordSetup.tsx";
 import AdminUsers from "./pages/admin/Users.tsx";
 import AdminInvites from "./pages/admin/Invites.tsx";
 import AdminRequests from "./pages/admin/Requests.tsx";
@@ -54,18 +56,19 @@ const App = () => (
           <Route path="/terms" element={<Legal />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
 
-          <Route path="/landlord" element={<LandlordDashboard />} />
-          <Route path="/landlord/payments" element={<LandlordPayments />} />
-          <Route path="/landlord/tenants" element={<LandlordTenants />} />
-          <Route path="/landlord/rent-roll" element={<LandlordRentRoll />} />
-          <Route path="/landlord/maintenance" element={<LandlordMaintenance />} />
-          <Route path="/landlord/invite" element={<LandlordInvite />} />
-          <Route path="/landlord/leases/new" element={<LandlordLeaseForm />} />
-          <Route path="/landlord/leases/:slug" element={<LandlordLeaseDetail />} />
-          <Route path="/landlord/leases/:slug/edit" element={<LandlordLeaseForm />} />
-          <Route path="/landlord/properties" element={<LandlordProperties />} />
-          <Route path="/landlord/properties/:slug" element={<LandlordPropertyDetail />} />
+          <Route path="/landlord" element={<RequireLandlordSetup><LandlordDashboard /></RequireLandlordSetup>} />
+          <Route path="/landlord/payments" element={<RequireLandlordSetup><LandlordPayments /></RequireLandlordSetup>} />
+          <Route path="/landlord/tenants" element={<RequireLandlordSetup><LandlordTenants /></RequireLandlordSetup>} />
+          <Route path="/landlord/rent-roll" element={<RequireLandlordSetup><LandlordRentRoll /></RequireLandlordSetup>} />
+          <Route path="/landlord/maintenance" element={<RequireLandlordSetup><LandlordMaintenance /></RequireLandlordSetup>} />
+          <Route path="/landlord/invite" element={<RequireLandlordSetup><LandlordInvite /></RequireLandlordSetup>} />
+          <Route path="/landlord/leases/new" element={<RequireLandlordSetup><LandlordLeaseForm /></RequireLandlordSetup>} />
+          <Route path="/landlord/leases/:slug" element={<RequireLandlordSetup><LandlordLeaseDetail /></RequireLandlordSetup>} />
+          <Route path="/landlord/leases/:slug/edit" element={<RequireLandlordSetup><LandlordLeaseForm /></RequireLandlordSetup>} />
+          <Route path="/landlord/properties" element={<RequireLandlordSetup><LandlordProperties /></RequireLandlordSetup>} />
+          <Route path="/landlord/properties/:slug" element={<RequireLandlordSetup><LandlordPropertyDetail /></RequireLandlordSetup>} />
           <Route path="/landlord/profile" element={<LandlordProfile />} />
+          <Route path="/landlord/setup" element={<LandlordSetup />} />
 
           <Route path="/admin" element={<AdminUsers />} />
           <Route path="/admin/requests" element={<AdminRequests />} />
