@@ -302,6 +302,60 @@ export default function LandlordProfile() {
 
         </div>
 
+        {/* Subscriptions */}
+        <div className="lg:col-span-3 rounded-xl border border-border bg-card p-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-muted-foreground" />
+                <h2 className="font-semibold text-foreground">Subscription</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Your active platform subscription.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={refreshSubs} disabled={subsLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${subsLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+
+          <div className="mt-5">
+            {subsLoading && subs.length === 0 ? (
+              <div className="text-sm text-muted-foreground">Loading…</div>
+            ) : subs.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No subscriptions found.</div>
+            ) : (
+              <div className="divide-y divide-border rounded-lg border border-border">
+                {subs.map((s) => {
+                  const active = ["active", "trialing"].includes(s.status);
+                  const renews = s.current_period_end
+                    ? new Date(s.current_period_end * 1000).toLocaleDateString()
+                    : null;
+                  return (
+                    <div key={s.id} className="p-4 flex items-start justify-between gap-4 flex-wrap">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="font-medium text-foreground">{s.nickname ?? "Subscription"}</div>
+                          <Badge variant={active ? "secondary" : "outline"} className="capitalize">
+                            {s.status.replace("_", " ")}
+                          </Badge>
+                          {s.cancel_at_period_end && <Badge variant="outline">Cancels at period end</Badge>}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {formatMoney(s.amount, s.currency)}
+                          {s.interval ? ` / ${s.interval_count > 1 ? `${s.interval_count} ` : ""}${s.interval}` : ""}
+                          {renews ? ` · ${s.cancel_at_period_end ? "Ends" : "Renews"} ${renews}` : ""}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </LandlordLayout>
   );
