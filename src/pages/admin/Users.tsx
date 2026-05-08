@@ -18,6 +18,8 @@ interface UserRow {
   phone: string | null;
   created_at: string;
   roles: Role[];
+  subscription_price_id: string | null;
+  stripe_subscription_status: string | null;
 }
 
 const roleTone: Record<Role, "success" | "info" | "muted"> = {
