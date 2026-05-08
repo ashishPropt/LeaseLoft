@@ -37,7 +37,7 @@ export default function AdminUsers() {
   async function load() {
     setLoading(true);
     const [{ data: profs }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("id,full_name,first_name,last_name,email,phone_e164,created_at"),
+      supabase.from("profiles").select("id,full_name,first_name,last_name,email,phone_e164,created_at,subscription_price_id,stripe_subscription_status"),
       supabase.from("user_roles").select("user_id,role"),
     ]);
     const rolesByUser = new Map<string, Role[]>();
@@ -53,10 +53,20 @@ export default function AdminUsers() {
       phone: p.phone_e164,
       created_at: p.created_at,
       roles: rolesByUser.get(p.id) ?? [],
+      subscription_price_id: p.subscription_price_id,
+      stripe_subscription_status: p.stripe_subscription_status,
     })).sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)));
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
+
+  async function savePriceId(userId: string, priceId: string) {
+    const value = priceId.trim() || null;
+    const { error } = await supabase.from("profiles").update({ subscription_price_id: value }).eq("id", userId);
+    if (error) return toast({ title: "Could not save price ID", description: error.message, variant: "destructive" });
+    toast({ title: value ? "Plan price ID saved" : "Plan price ID cleared" });
+    load();
+  }
 
   async function assign(userId: string, role: Role) {
     const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
