@@ -153,6 +153,15 @@ export default function AdminUsers() {
                   </div>
                 </td>
                 <td className="px-6 py-4">
+                  {u.roles.includes("landlord") ? (
+                    <PriceIdEditor
+                      initial={u.subscription_price_id ?? ""}
+                      status={u.stripe_subscription_status}
+                      onSave={(v) => savePriceId(u.id, v)}
+                    />
+                  ) : <span className="text-muted-foreground text-xs">—</span>}
+                </td>
+                <td className="px-6 py-4">
                   <div className="flex flex-wrap justify-end gap-1.5">
                     {(["admin","landlord","tenant"] as Role[]).map(r => {
                       const has = u.roles.includes(r);
