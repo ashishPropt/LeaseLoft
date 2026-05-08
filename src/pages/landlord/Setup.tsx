@@ -7,12 +7,18 @@ import { CheckCircle2, Circle, CreditCard, Landmark, RefreshCw } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useLandlordGate } from "@/lib/useLandlordGate";
+import { StripePricingTable } from "@/components/payments/StripePricingTable";
 
 export default function LandlordSetup() {
   const gate = useLandlordGate();
   const [busy, setBusy] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id ?? null));
+  }, []);
 
   const refreshSub = useCallback(async () => {
     await supabase.functions.invoke("landlord-subscription-status");
@@ -115,13 +121,23 @@ export default function LandlordSetup() {
                 <RefreshCw className={`w-4 h-4 mr-2 ${gate.loading ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
-              {!gate.subscriptionOk && (
+              {!gate.subscriptionOk && !gate.pricingTableId && (
                 <Button onClick={startSubscribe} disabled={busy || gate.loading || !gate.hasPrice}>
                   Subscribe
                 </Button>
               )}
             </div>
           </div>
+
+          {!gate.subscriptionOk && gate.pricingTableId && (
+            <div className="mt-6 -mx-2">
+              <StripePricingTable
+                pricingTableId={gate.pricingTableId}
+                customerEmail={gate.email}
+                clientReferenceId={userId}
+              />
+            </div>
+          )}
         </div>
       </div>
     </LandlordLayout>

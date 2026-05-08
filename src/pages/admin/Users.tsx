@@ -19,6 +19,7 @@ interface UserRow {
   created_at: string;
   roles: Role[];
   subscription_price_id: string | null;
+  stripe_pricing_table_id: string | null;
   stripe_subscription_status: string | null;
 }
 
@@ -37,7 +38,7 @@ export default function AdminUsers() {
   async function load() {
     setLoading(true);
     const [{ data: profs }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("id,full_name,first_name,last_name,email,phone_e164,created_at,subscription_price_id,stripe_subscription_status"),
+      supabase.from("profiles").select("id,full_name,first_name,last_name,email,phone_e164,created_at,subscription_price_id,stripe_pricing_table_id,stripe_subscription_status"),
       supabase.from("user_roles").select("user_id,role"),
     ]);
     const rolesByUser = new Map<string, Role[]>();
@@ -54,6 +55,7 @@ export default function AdminUsers() {
       created_at: p.created_at,
       roles: rolesByUser.get(p.id) ?? [],
       subscription_price_id: p.subscription_price_id,
+      stripe_pricing_table_id: p.stripe_pricing_table_id,
       stripe_subscription_status: p.stripe_subscription_status,
     })).sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)));
     setLoading(false);
@@ -65,6 +67,14 @@ export default function AdminUsers() {
     const { error } = await supabase.from("profiles").update({ subscription_price_id: value }).eq("id", userId);
     if (error) return toast({ title: "Could not save price ID", description: error.message, variant: "destructive" });
     toast({ title: value ? "Plan price ID saved" : "Plan price ID cleared" });
+    load();
+  }
+
+  async function savePricingTableId(userId: string, ptId: string) {
+    const value = ptId.trim() || null;
+    const { error } = await supabase.from("profiles").update({ stripe_pricing_table_id: value }).eq("id", userId);
+    if (error) return toast({ title: "Could not save pricing table ID", description: error.message, variant: "destructive" });
+    toast({ title: value ? "Pricing table ID saved" : "Pricing table ID cleared" });
     load();
   }
 
@@ -154,11 +164,20 @@ export default function AdminUsers() {
                 </td>
                 <td className="px-6 py-4">
                   {u.roles.includes("landlord") ? (
-                    <PriceIdEditor
-                      initial={u.subscription_price_id ?? ""}
-                      status={u.stripe_subscription_status}
-                      onSave={async (v) => { await savePriceId(u.id, v); }}
-                    />
+                    <div className="space-y-1.5">
+                      <PriceIdEditor
+                        initial={u.subscription_price_id ?? ""}
+                        status={u.stripe_subscription_status}
+                        placeholder="price_..."
+                        onSave={async (v) => { await savePriceId(u.id, v); }}
+                      />
+                      <PriceIdEditor
+                        initial={u.stripe_pricing_table_id ?? ""}
+                        status={null}
+                        placeholder="prctbl_..."
+                        onSave={async (v) => { await savePricingTableId(u.id, v); }}
+                      />
+                    </div>
                   ) : <span className="text-muted-foreground text-xs">—</span>}
                 </td>
                 <td className="px-6 py-4">
@@ -189,7 +208,7 @@ export default function AdminUsers() {
   );
 }
 
-function PriceIdEditor({ initial, status, onSave }: { initial: string; status: string | null; onSave: (v: string) => void | Promise<void> }) {
+function PriceIdEditor({ initial, status, placeholder, onSave }: { initial: string; status: string | null; placeholder?: string; onSave: (v: string) => void | Promise<void> }) {
   const [value, setValue] = useState(initial);
   const dirty = value.trim() !== initial.trim();
   return (
@@ -197,7 +216,7 @@ function PriceIdEditor({ initial, status, onSave }: { initial: string; status: s
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="price_..."
+        placeholder={placeholder ?? "price_..."}
         className="h-8 text-xs font-mono"
       />
       <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={!dirty} onClick={() => onSave(value)}>

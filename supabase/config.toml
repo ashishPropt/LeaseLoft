@@ -19,3 +19,5 @@ project_id = "mluhflymayiyhiwnbwqf"
     verify_jwt = false
   [functions.turnstile-config]
     verify_jwt = false
+  [functions.stripe-public-config]
+    verify_jwt = false
