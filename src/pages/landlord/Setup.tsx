@@ -40,6 +40,15 @@ export default function LandlordSetup() {
     if (!gate.loading && gate.ready) navigate("/landlord", { replace: true });
   }, [gate.loading, gate.ready, navigate]);
 
+  // While the pricing table is shown (no Checkout redirect), poll for subscription activation.
+  useEffect(() => {
+    if (gate.subscriptionOk || !gate.pricingTableId) return;
+    const id = setInterval(() => { refreshSub(); }, 5000);
+    const onFocus = () => refreshSub();
+    window.addEventListener("focus", onFocus);
+    return () => { clearInterval(id); window.removeEventListener("focus", onFocus); };
+  }, [gate.subscriptionOk, gate.pricingTableId, refreshSub]);
+
   async function startConnect() {
     setBusy(true);
     const { data, error } = await supabase.functions.invoke("stripe-connect-onboard", {
