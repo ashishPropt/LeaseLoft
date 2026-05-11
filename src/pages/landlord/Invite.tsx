@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Copy, Check, Plus } from "lucide-react";
+import { Copy, Check, Plus, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LandlordLayout } from "@/components/layout/LandlordLayout";
 import { StatusPill } from "@/components/layout/StatusPill";
