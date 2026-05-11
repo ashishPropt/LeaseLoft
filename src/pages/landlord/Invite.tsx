@@ -97,9 +97,42 @@ export default function LandlordInvite() {
     });
     setCreating(false);
     if (error) return toast({ title: "Could not create invite", description: error.message, variant: "destructive" });
-    toast({ title: "Invite created", description: `Code ${code} ready to share.` });
+    await sendInviteEmail({ code, email: form.email, first_name: form.first_name, property: propertyText });
+    toast({ title: "Invite created", description: `Code ${code} sent to ${form.email}.` });
     setForm({ first_name: "", last_name: "", email: "", property_id: "", unit_id: "", note: "" });
     load();
+  }
+
+  async function sendInviteEmail(inv: { code: string; email: string | null; first_name: string | null; property: string | null }) {
+    if (!inv.email) {
+      toast({ title: "No email on file", description: "Cannot send — invite has no recipient email.", variant: "destructive" });
+      return false;
+    }
+    const { error } = await supabase.functions.invoke("send-transactional-email", {
+      body: {
+        templateName: "tenant-invite-code",
+        recipientEmail: inv.email,
+        idempotencyKey: `tenant-invite-${inv.code}-${Date.now()}`,
+        templateData: {
+          firstName: inv.first_name ?? undefined,
+          inviteCode: inv.code,
+          landlordName: creatorName,
+          property: inv.property ?? undefined,
+        },
+      },
+    });
+    if (error) {
+      toast({ title: "Email send failed", description: error.message, variant: "destructive" });
+      return false;
+    }
+    return true;
+  }
+
+  async function resend(inv: Invite) {
+    setResending(inv.code);
+    const ok = await sendInviteEmail(inv);
+    setResending(null);
+    if (ok) toast({ title: "Invite resent", description: `Code ${inv.code} sent to ${inv.email}.` });
   }
 
   async function copy(code: string) {
