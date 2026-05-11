@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Copy, Check, Plus } from "lucide-react";
+import { Copy, Check, Plus, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LandlordLayout } from "@/components/layout/LandlordLayout";
 import { StatusPill } from "@/components/layout/StatusPill";
@@ -39,6 +39,7 @@ export default function LandlordInvite() {
   const [creatorName, setCreatorName] = useState<string>("");
   const [properties, setProperties] = useState<Property[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [resending, setResending] = useState<string | null>(null);
 
   async function load() {
     const { data: s } = await supabase.auth.getSession();
@@ -97,9 +98,42 @@ export default function LandlordInvite() {
     });
     setCreating(false);
     if (error) return toast({ title: "Could not create invite", description: error.message, variant: "destructive" });
-    toast({ title: "Invite created", description: `Code ${code} ready to share.` });
+    await sendInviteEmail({ code, email: form.email, first_name: form.first_name, property: propertyText });
+    toast({ title: "Invite created", description: `Code ${code} sent to ${form.email}.` });
     setForm({ first_name: "", last_name: "", email: "", property_id: "", unit_id: "", note: "" });
     load();
+  }
+
+  async function sendInviteEmail(inv: { code: string; email: string | null; first_name: string | null; property: string | null }) {
+    if (!inv.email) {
+      toast({ title: "No email on file", description: "Cannot send — invite has no recipient email.", variant: "destructive" });
+      return false;
+    }
+    const { error } = await supabase.functions.invoke("send-transactional-email", {
+      body: {
+        templateName: "tenant-invite-code",
+        recipientEmail: inv.email,
+        idempotencyKey: `tenant-invite-${inv.code}-${Date.now()}`,
+        templateData: {
+          firstName: inv.first_name ?? undefined,
+          inviteCode: inv.code,
+          landlordName: creatorName,
+          property: inv.property ?? undefined,
+        },
+      },
+    });
+    if (error) {
+      toast({ title: "Email send failed", description: error.message, variant: "destructive" });
+      return false;
+    }
+    return true;
+  }
+
+  async function resend(inv: Invite) {
+    setResending(inv.code);
+    const ok = await sendInviteEmail(inv);
+    setResending(null);
+    if (ok) toast({ title: "Invite resent", description: `Code ${inv.code} sent to ${inv.email}.` });
   }
 
   async function copy(code: string) {
@@ -204,9 +238,16 @@ export default function LandlordInvite() {
                     </td>
                     <td className="px-6 py-3 text-muted-foreground">{inv.expires_at ? shortDate(inv.expires_at) : "—"}</td>
                     <td className="px-6 py-3 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => copy(inv.code)}>
-                        {copied === inv.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {!used && !expired && inv.email && (
+                          <Button variant="ghost" size="sm" onClick={() => resend(inv)} disabled={resending === inv.code} title="Resend invite email">
+                            <Mail className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => copy(inv.code)} title="Copy code">
+                          {copied === inv.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
