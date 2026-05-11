@@ -238,9 +238,16 @@ export default function LandlordInvite() {
                     </td>
                     <td className="px-6 py-3 text-muted-foreground">{inv.expires_at ? shortDate(inv.expires_at) : "—"}</td>
                     <td className="px-6 py-3 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => copy(inv.code)}>
-                        {copied === inv.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {!used && !expired && inv.email && (
+                          <Button variant="ghost" size="sm" onClick={() => resend(inv)} disabled={resending === inv.code} title="Resend invite email">
+                            <Mail className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => copy(inv.code)} title="Copy code">
+                          {copied === inv.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
