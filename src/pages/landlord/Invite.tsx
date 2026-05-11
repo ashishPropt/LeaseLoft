@@ -39,6 +39,7 @@ export default function LandlordInvite() {
   const [creatorName, setCreatorName] = useState<string>("");
   const [properties, setProperties] = useState<Property[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [resending, setResending] = useState<string | null>(null);
 
   async function load() {
     const { data: s } = await supabase.auth.getSession();
