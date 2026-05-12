@@ -8,6 +8,7 @@ export interface LinkedAccount {
   bankName: string;
   mask: string;
   accountType: string;
+  connectedAccountId?: string;
 }
 
 export interface InitiateInput {
@@ -18,6 +19,7 @@ export interface InitiateInput {
   idempotencyKey: string;
   userId: string;
   userName: string;
+  stripeAccount?: string;
 }
 
 export interface InitiateResult {
@@ -30,12 +32,13 @@ export interface WebhookEvent {
   providerTransferId: string;
   newStatus: 'processing' | 'paid' | 'failed' | 'returned';
   failureReason?: string;
+  connectedAccountId?: string;
 }
 
 export interface PaymentProvider {
   name: ProviderName;
-  createLinkToken(input: { userId: string }): Promise<{ linkToken: string }>;
-  exchangePublicToken(input: { publicToken?: string; accountId: string }): Promise<LinkedAccount>;
+  createLinkToken(input: { userId: string; stripeAccount?: string }): Promise<{ linkToken: string; connectedAccountId?: string }>;
+  exchangePublicToken(input: { publicToken?: string; accountId: string; stripeAccount?: string }): Promise<LinkedAccount>;
   initiatePayment(input: InitiateInput): Promise<InitiateResult>;
   parseWebhook(req: Request, rawBody: string): Promise<WebhookEvent[] | null>;
 }

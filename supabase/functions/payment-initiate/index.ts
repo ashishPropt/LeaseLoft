@@ -1,6 +1,5 @@
 import { corsHeaders, getUser, json, serviceClient } from '../_shared/auth.ts';
 import { getProvider } from '../_shared/payments/index.ts';
-import { createTransferForPayment } from '../_shared/payments/stripe-transfer.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -11,15 +10,13 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const paymentId = String(body.payment_id ?? '');
     const paymentMethodId = String(body.payment_method_id ?? '');
-    // Partial payments are not allowed: always charge the full payment.amount from DB.
     if (!paymentId || !paymentMethodId) return json({ error: 'Missing payment_id or payment_method_id' }, 400);
 
     const sb = serviceClient();
 
-    // Validate payment belongs to tenant
     const { data: payment, error: perr } = await sb
       .from('payments')
-      .select('id, lease_id, amount, status, leases!inner(tenant_id)')
+      .select('id, lease_id, amount, status, leases!inner(tenant_id, landlord_id)')
       .eq('id', paymentId)
       .single();
     if (perr || !payment) return json({ error: 'Payment not found' }, 404);
@@ -29,17 +26,31 @@ Deno.serve(async (req) => {
       return json({ error: `Payment already ${payment.status}` }, 409);
     }
 
-    // Validate payment method belongs to tenant + fetch access token via service role
     const { data: pm, error: merr } = await sb
       .from('payment_methods')
-      .select('id, tenant_id, provider, provider_account_id, provider_access_token, status')
+      .select('id, tenant_id, provider, provider_account_id, provider_access_token, status, connected_account_id')
       .eq('id', paymentMethodId)
       .single();
     if (merr || !pm) return json({ error: 'Payment method not found' }, 404);
     if (pm.tenant_id !== user.id) return json({ error: 'Forbidden' }, 403);
     if (pm.status !== 'active') return json({ error: 'Payment method revoked' }, 400);
+    if (!pm.connected_account_id) return json({ error: 'Bank account is no longer valid. Please re-link your bank.' }, 400);
 
-    // Profile for legal name
+    // Verify connected account still matches this lease's landlord
+    // @ts-ignore embedded
+    const landlordId = payment.leases.landlord_id as string;
+    const { data: landlord } = await sb
+      .from('profiles')
+      .select('stripe_connect_account_id, stripe_connect_charges_enabled')
+      .eq('id', landlordId)
+      .maybeSingle();
+    if (!landlord?.stripe_connect_account_id || landlord.stripe_connect_account_id !== pm.connected_account_id) {
+      return json({ error: 'Bank account is linked to a different landlord. Please re-link your bank.' }, 400);
+    }
+    if (!landlord.stripe_connect_charges_enabled) {
+      return json({ error: 'Landlord cannot accept payments yet' }, 400);
+    }
+
     const { data: profile } = await sb
       .from('profiles')
       .select('full_name, first_name, last_name, email')
@@ -61,6 +72,7 @@ Deno.serve(async (req) => {
       idempotencyKey: paymentId,
       userId: user.id,
       userName,
+      stripeAccount: pm.connected_account_id,
     });
 
     const newStatus = result.status === 'failed' ? 'failed'
@@ -78,24 +90,15 @@ Deno.serve(async (req) => {
         amount: amountCents / 100,
         failure_reason: result.failureReason ?? null,
         paid_at: newStatus === 'paid' ? new Date().toISOString() : null,
+        connected_account_id: pm.connected_account_id,
       })
       .eq('id', paymentId);
     if (uerr) throw uerr;
-
-    let transfer: Awaited<ReturnType<typeof createTransferForPayment>> | null = null;
-    if (newStatus === 'paid') {
-      try {
-        transfer = await createTransferForPayment(sb, paymentId);
-      } catch (e) {
-        console.error('[payment-initiate] transfer error', e);
-      }
-    }
 
     return json({
       status: newStatus,
       provider_transfer_id: result.providerTransferId,
       failure_reason: result.failureReason,
-      transfer,
     });
   } catch (e) {
     console.error('[payment-initiate]', e);
