@@ -167,6 +167,8 @@ export default function LandlordLeaseForm() {
       start_date: startDate,
       end_date: endDate,
       rent_amount: Number(rent),
+      late_fee_amount: Math.max(0, Number(lateFeeAmount) || 0),
+      late_fee_grace_days: Math.max(0, Math.floor(Number(lateFeeGraceDays) || 0)),
       status,
     };
 
