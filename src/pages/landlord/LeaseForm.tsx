@@ -109,6 +109,8 @@ export default function LandlordLeaseForm() {
           setStartDate(lease.start_date);
           setEndDate(lease.end_date);
           setRent(String(lease.rent_amount));
+          setLateFeeAmount(String((lease as any).late_fee_amount ?? 0));
+          setLateFeeGraceDays(String((lease as any).late_fee_grace_days ?? 0));
           setStatus(lease.status);
           const u = unitsList.find(x => x.id === lease.unit_id);
           if (u) setPropertyId(u.property_id);
