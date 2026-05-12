@@ -284,6 +284,16 @@ export default function LandlordLeaseForm() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <Label htmlFor="lateFee">Late fee amount</Label>
+            <Input id="lateFee" type="number" min="0" step="0.01" className="mt-1.5" value={lateFeeAmount} onChange={e => setLateFeeAmount(e.target.value)} />
+            <p className="mt-1 text-xs text-muted-foreground">Flat fee charged once per overdue payment. Set to 0 to disable.</p>
+          </div>
+          <div>
+            <Label htmlFor="graceDays">Grace period (days)</Label>
+            <Input id="graceDays" type="number" min="0" step="1" className="mt-1.5" value={lateFeeGraceDays} onChange={e => setLateFeeGraceDays(e.target.value)} />
+            <p className="mt-1 text-xs text-muted-foreground">Days after the due date before a late fee can be applied.</p>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 pt-2">
