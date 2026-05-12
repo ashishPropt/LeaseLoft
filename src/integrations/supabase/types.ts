@@ -430,6 +430,7 @@ export type Database = {
           account_mask: string | null
           account_type: string | null
           bank_name: string | null
+          connected_account_id: string | null
           created_at: string
           id: string
           landlord_id: string
@@ -444,6 +445,7 @@ export type Database = {
           account_mask?: string | null
           account_type?: string | null
           bank_name?: string | null
+          connected_account_id?: string | null
           created_at?: string
           id?: string
           landlord_id: string
@@ -458,6 +460,7 @@ export type Database = {
           account_mask?: string | null
           account_type?: string | null
           bank_name?: string | null
+          connected_account_id?: string | null
           created_at?: string
           id?: string
           landlord_id?: string
@@ -515,6 +518,7 @@ export type Database = {
       payments: {
         Row: {
           amount: number
+          connected_account_id: string | null
           created_at: string
           destination_account_id: string | null
           due_date: string
@@ -536,6 +540,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          connected_account_id?: string | null
           created_at?: string
           destination_account_id?: string | null
           due_date: string
@@ -557,6 +562,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          connected_account_id?: string | null
           created_at?: string
           destination_account_id?: string | null
           due_date?: string
@@ -841,6 +847,7 @@ export type Database = {
         }
         Returns: {
           amount: number
+          connected_account_id: string | null
           created_at: string
           destination_account_id: string | null
           due_date: string
