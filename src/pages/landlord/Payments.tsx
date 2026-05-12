@@ -195,6 +195,17 @@ export default function LandlordPayments() {
     load();
   };
 
+  const applyLateFee = async (r: Row) => {
+    if (!confirm(`Apply a late fee of ${money(r.leaseLateFeeAmount)} to ${r.tenant} for ${shortDate(r.due)}?`)) return;
+    const { error } = await supabase.rpc("landlord_apply_late_fee" as any, { _payment_id: r.id });
+    if (error) {
+      toast({ title: "Could not apply late fee", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Late fee applied", description: `${money(r.leaseLateFeeAmount)} added to the amount due.` });
+    load();
+  };
+
   const openHistory = async (r: Row) => {
     setHistoryFor(r);
     setHistory([]);
