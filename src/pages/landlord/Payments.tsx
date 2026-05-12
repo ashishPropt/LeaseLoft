@@ -34,6 +34,10 @@ interface Row {
   destinationAccountId: string | null;
   providerTransferId: string | null;
   failureReason: string | null;
+  lateFeeAmount: number;
+  lateFeeAppliedAt: string | null;
+  leaseLateFeeAmount: number;
+  leaseLateFeeGraceDays: number;
   updatedAt: string;
   createdAt: string;
 }
@@ -78,7 +82,7 @@ export default function LandlordPayments() {
 
     const { data: leases } = await supabase
       .from("leases")
-      .select("id,tenant_id,unit_id,status")
+      .select("id,tenant_id,unit_id,status,late_fee_amount,late_fee_grace_days")
       .eq("landlord_id", uid);
 
     const leaseIds = (leases ?? []).map(l => l.id);
@@ -124,6 +128,10 @@ export default function LandlordPayments() {
         destinationAccountId: p.destination_account_id ?? null,
         providerTransferId: p.provider_transfer_id ?? null,
         failureReason: p.failure_reason ?? null,
+        lateFeeAmount: Number((p as any).late_fee_amount ?? 0),
+        lateFeeAppliedAt: (p as any).late_fee_applied_at ?? null,
+        leaseLateFeeAmount: Number((lease as any)?.late_fee_amount ?? 0),
+        leaseLateFeeGraceDays: Number((lease as any)?.late_fee_grace_days ?? 0),
         updatedAt: p.updated_at,
         createdAt: p.created_at,
       };
@@ -184,6 +192,17 @@ export default function LandlordPayments() {
     }
     toast({ title: "Payment updated", description: `Status set to ${editStatus}.` });
     setEditing(null);
+    load();
+  };
+
+  const applyLateFee = async (r: Row) => {
+    if (!confirm(`Apply a late fee of ${money(r.leaseLateFeeAmount)} to ${r.tenant} for ${shortDate(r.due)}?`)) return;
+    const { error } = await supabase.rpc("landlord_apply_late_fee" as any, { _payment_id: r.id });
+    if (error) {
+      toast({ title: "Could not apply late fee", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Late fee applied", description: `${money(r.leaseLateFeeAmount)} added to the amount due.` });
     load();
   };
 
@@ -274,9 +293,21 @@ export default function LandlordPayments() {
                 <td className="px-6 py-4">
                   <TransferCell row={r} />
                 </td>
-                <td className="px-6 py-4 text-right font-mono font-medium text-foreground">{money(r.amount)}</td>
+                <td className="px-6 py-4 text-right font-mono font-medium text-foreground">
+                  {money(r.amount)}
+                  {r.lateFeeAmount > 0 && (
+                    <div className="text-[10px] font-sans font-normal text-amber-600 mt-0.5">
+                      incl. {money(r.lateFeeAmount)} late fee
+                    </div>
+                  )}
+                </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
+                    {r.status === "pending" && r.leaseLateFeeAmount > 0 && !r.lateFeeAppliedAt && isOverdue(r) && (
+                      <Button size="sm" variant="outline" onClick={() => applyLateFee(r)} title={`Add ${money(r.leaseLateFeeAmount)} late fee`}>
+                        Apply late fee
+                      </Button>
+                    )}
                     {r.status === "pending" && (
                       <Button size="sm" variant="outline" onClick={() => openEdit(r)}>Update</Button>
                     )}
@@ -429,6 +460,15 @@ export default function LandlordPayments() {
       </Dialog>
     </LandlordLayout>
   );
+}
+
+function isOverdue(r: Row): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(r.due + "T00:00:00");
+  const cutoff = new Date(due);
+  cutoff.setDate(cutoff.getDate() + (r.leaseLateFeeGraceDays || 0));
+  return today > cutoff;
 }
 
 function transferLabel(r: Row): string {

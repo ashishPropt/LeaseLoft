@@ -40,6 +40,8 @@ export default function LandlordLeaseForm() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [rent, setRent] = useState<string>("");
+  const [lateFeeAmount, setLateFeeAmount] = useState<string>("0");
+  const [lateFeeGraceDays, setLateFeeGraceDays] = useState<string>("0");
   const [status, setStatus] = useState<"draft" | "active" | "ended" | "terminated">("active");
 
   useEffect(() => {
@@ -107,6 +109,8 @@ export default function LandlordLeaseForm() {
           setStartDate(lease.start_date);
           setEndDate(lease.end_date);
           setRent(String(lease.rent_amount));
+          setLateFeeAmount(String((lease as any).late_fee_amount ?? 0));
+          setLateFeeGraceDays(String((lease as any).late_fee_grace_days ?? 0));
           setStatus(lease.status);
           const u = unitsList.find(x => x.id === lease.unit_id);
           if (u) setPropertyId(u.property_id);
@@ -163,6 +167,8 @@ export default function LandlordLeaseForm() {
       start_date: startDate,
       end_date: endDate,
       rent_amount: Number(rent),
+      late_fee_amount: Math.max(0, Number(lateFeeAmount) || 0),
+      late_fee_grace_days: Math.max(0, Math.floor(Number(lateFeeGraceDays) || 0)),
       status,
     };
 
@@ -277,6 +283,16 @@ export default function LandlordLeaseForm() {
                 <SelectItem value="ended">Ended</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div>
+            <Label htmlFor="lateFee">Late fee amount</Label>
+            <Input id="lateFee" type="number" min="0" step="0.01" className="mt-1.5" value={lateFeeAmount} onChange={e => setLateFeeAmount(e.target.value)} />
+            <p className="mt-1 text-xs text-muted-foreground">Flat fee charged once per overdue payment. Set to 0 to disable.</p>
+          </div>
+          <div>
+            <Label htmlFor="graceDays">Grace period (days)</Label>
+            <Input id="graceDays" type="number" min="0" step="1" className="mt-1.5" value={lateFeeGraceDays} onChange={e => setLateFeeGraceDays(e.target.value)} />
+            <p className="mt-1 text-xs text-muted-foreground">Days after the due date before a late fee can be applied.</p>
           </div>
         </div>
 
