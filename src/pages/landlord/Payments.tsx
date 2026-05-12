@@ -462,6 +462,15 @@ export default function LandlordPayments() {
   );
 }
 
+function isOverdue(r: Row): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(r.due + "T00:00:00");
+  const cutoff = new Date(due);
+  cutoff.setDate(cutoff.getDate() + (r.leaseLateFeeGraceDays || 0));
+  return today > cutoff;
+}
+
 function transferLabel(r: Row): string {
   if (r.transferId) return `created (${r.transferId.slice(0, 14)}…)`;
   if (r.transferStatus) return r.transferStatus;
