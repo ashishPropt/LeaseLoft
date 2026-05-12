@@ -5,10 +5,17 @@ import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-let stripePromise: Promise<Stripe | null> | null = null;
-function getStripe(publishableKey: string) {
-  if (!stripePromise) stripePromise = loadStripe(publishableKey);
-  return stripePromise;
+const stripeCache = new Map<string, Promise<Stripe | null>>();
+function getStripe(publishableKey: string, stripeAccount?: string) {
+  const key = `${publishableKey}::${stripeAccount ?? ""}`;
+  let p = stripeCache.get(key);
+  if (!p) {
+    p = stripeAccount
+      ? loadStripe(publishableKey, { stripeAccount })
+      : loadStripe(publishableKey);
+    stripeCache.set(key, p);
+  }
+  return p;
 }
 
 interface Props {
@@ -27,9 +34,10 @@ export function StripeBankLinkButton({ onLinked, label = "Link your bank", varia
       if (error) throw error;
       const clientSecret = data?.link_token as string | undefined;
       const publishableKey = data?.publishable_key as string | undefined;
+      const connectedAccountId = data?.connected_account_id as string | undefined;
       if (!clientSecret || !publishableKey) throw new Error("Stripe configuration missing");
 
-      const stripe = await getStripe(publishableKey);
+      const stripe = await getStripe(publishableKey, connectedAccountId);
       if (!stripe) throw new Error("Stripe failed to load");
 
       const stripeAny = stripe as unknown as { collectFinancialConnectionsAccounts: (opts: { clientSecret: string }) => Promise<{ error?: { message?: string }; financialConnectionsSession?: { accounts: Array<{ id: string }> } }> };

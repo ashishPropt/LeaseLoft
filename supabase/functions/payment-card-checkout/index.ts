@@ -1,19 +1,34 @@
-// Creates a Stripe Checkout Session (card + Apple/Google Pay) for a rent payment.
-// On success, Stripe webhooks (payment_intent.succeeded) flow through payment-webhook
-// which updates the payment row and triggers the landlord transfer.
+// Creates a Stripe Checkout Session (card + Apple/Google Pay) for a rent payment
+// as a DIRECT charge on the landlord's connected Stripe account.
 import { corsHeaders, getUser, json, serviceClient } from '../_shared/auth.ts';
 
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 
-async function stripe(path: string, params: Record<string, string>, idempotencyKey?: string) {
+async function stripe(
+  path: string,
+  params: Record<string, string>,
+  idempotencyKey?: string,
+  stripeAccount?: string,
+) {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
     'Content-Type': 'application/x-www-form-urlencoded',
   };
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+  if (stripeAccount) headers['Stripe-Account'] = stripeAccount;
   const body = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (v != null) body.append(k, v);
   const res = await fetch(`https://api.stripe.com/v1${path}`, { method: 'POST', headers, body: body.toString() });
+  const j = await res.json();
+  if (!res.ok) throw new Error(j.error?.message || `Stripe ${path} failed`);
+  return j;
+}
+
+async function stripeSearch(path: string, query: string, stripeAccount?: string) {
+  const headers: Record<string, string> = { Authorization: `Bearer ${STRIPE_SECRET_KEY}` };
+  if (stripeAccount) headers['Stripe-Account'] = stripeAccount;
+  const url = `https://api.stripe.com/v1${path}?query=${encodeURIComponent(query)}&limit=1`;
+  const res = await fetch(url, { headers });
   const j = await res.json();
   if (!res.ok) throw new Error(j.error?.message || `Stripe ${path} failed`);
   return j;
@@ -35,7 +50,7 @@ Deno.serve(async (req) => {
 
     const { data: payment, error: perr } = await sb
       .from('payments')
-      .select('id, lease_id, amount, status, leases!inner(tenant_id)')
+      .select('id, lease_id, amount, status, leases!inner(tenant_id, landlord_id)')
       .eq('id', paymentId)
       .single();
     if (perr || !payment) return json({ error: 'Payment not found' }, 404);
@@ -45,22 +60,38 @@ Deno.serve(async (req) => {
       return json({ error: `Payment already ${payment.status}` }, 409);
     }
 
+    // @ts-ignore embedded
+    const landlordId = payment.leases.landlord_id as string;
+    const { data: landlord } = await sb
+      .from('profiles')
+      .select('stripe_connect_account_id, stripe_connect_charges_enabled')
+      .eq('id', landlordId)
+      .maybeSingle();
+    const connectedAccountId = landlord?.stripe_connect_account_id ?? '';
+    if (!connectedAccountId) return json({ error: 'Landlord has not connected a payout account yet' }, 400);
+    if (!landlord?.stripe_connect_charges_enabled) return json({ error: 'Landlord cannot accept payments yet' }, 400);
+
     const { data: profile } = await sb
       .from('profiles')
-      .select('email, stripe_customer_id, full_name, first_name, last_name')
+      .select('email, full_name, first_name, last_name')
       .eq('id', user.id)
       .maybeSingle();
 
-    // Ensure a Stripe customer (reuse if already linked).
-    let customerId = profile?.stripe_customer_id ?? '';
+    // Find or create a Customer on the connected account, scoped by user_id metadata.
+    let customerId = '';
+    try {
+      const search = await stripeSearch('/customers/search', `metadata['user_id']:'${user.id}'`, connectedAccountId);
+      customerId = search.data?.[0]?.id ?? '';
+    } catch (e) {
+      console.warn('[payment-card-checkout] customer search failed', (e as Error).message);
+    }
     if (!customerId) {
       const cus = await stripe('/customers', {
         email: profile?.email ?? user.email ?? '',
         'metadata[user_id]': user.id,
         name: profile?.full_name || `${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim() || (profile?.email ?? ''),
-      }, `cus_card_${user.id}`);
+      }, `cus_card_${user.id}_${connectedAccountId}`, connectedAccountId);
       customerId = cus.id;
-      await sb.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id);
     }
 
     const amountCents = Math.round(Number(payment.amount) * 100);
@@ -76,7 +107,6 @@ Deno.serve(async (req) => {
       'line_items[0][price_data][unit_amount]': String(amountCents),
       'line_items[0][price_data][product_data][name]': 'Rent payment',
       'payment_intent_data[description]': 'Rent (card)',
-      'payment_intent_data[setup_future_usage]': 'off_session',
       'payment_intent_data[metadata][payment_id]': paymentId,
       'payment_intent_data[metadata][lease_id]': payment.lease_id,
       'payment_intent_data[metadata][user_id]': user.id,
@@ -84,14 +114,14 @@ Deno.serve(async (req) => {
       client_reference_id: paymentId,
       success_url: successUrl,
       cancel_url: cancelUrl,
-    }, `cs_card_${paymentId}`);
+    }, `cs_card_${paymentId}`, connectedAccountId);
 
-    // Pre-fill fields so the webhook can match by provider_transfer_id once the PI succeeds.
     await sb.from('payments').update({
       method: 'card',
       provider: 'stripe_card',
       provider_transfer_id: session.payment_intent ?? null,
       payment_method_id: null,
+      connected_account_id: connectedAccountId,
     }).eq('id', paymentId);
 
     return json({ url: session.url, session_id: session.id });
