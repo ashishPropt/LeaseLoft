@@ -293,9 +293,21 @@ export default function LandlordPayments() {
                 <td className="px-6 py-4">
                   <TransferCell row={r} />
                 </td>
-                <td className="px-6 py-4 text-right font-mono font-medium text-foreground">{money(r.amount)}</td>
+                <td className="px-6 py-4 text-right font-mono font-medium text-foreground">
+                  {money(r.amount)}
+                  {r.lateFeeAmount > 0 && (
+                    <div className="text-[10px] font-sans font-normal text-amber-600 mt-0.5">
+                      incl. {money(r.lateFeeAmount)} late fee
+                    </div>
+                  )}
+                </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
+                    {r.status === "pending" && r.leaseLateFeeAmount > 0 && !r.lateFeeAppliedAt && isOverdue(r) && (
+                      <Button size="sm" variant="outline" onClick={() => applyLateFee(r)} title={`Add ${money(r.leaseLateFeeAmount)} late fee`}>
+                        Apply late fee
+                      </Button>
+                    )}
                     {r.status === "pending" && (
                       <Button size="sm" variant="outline" onClick={() => openEdit(r)}>Update</Button>
                     )}
