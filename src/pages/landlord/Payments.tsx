@@ -34,6 +34,10 @@ interface Row {
   destinationAccountId: string | null;
   providerTransferId: string | null;
   failureReason: string | null;
+  lateFeeAmount: number;
+  lateFeeAppliedAt: string | null;
+  leaseLateFeeAmount: number;
+  leaseLateFeeGraceDays: number;
   updatedAt: string;
   createdAt: string;
 }
