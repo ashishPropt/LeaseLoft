@@ -274,6 +274,8 @@ export type Database = {
           end_date: string
           id: string
           landlord_id: string
+          late_fee_amount: number
+          late_fee_grace_days: number
           property_id: string | null
           public_slug: string
           rent_amount: number
@@ -288,6 +290,8 @@ export type Database = {
           end_date: string
           id?: string
           landlord_id: string
+          late_fee_amount?: number
+          late_fee_grace_days?: number
           property_id?: string | null
           public_slug?: string
           rent_amount: number
@@ -302,6 +306,8 @@ export type Database = {
           end_date?: string
           id?: string
           landlord_id?: string
+          late_fee_amount?: number
+          late_fee_grace_days?: number
           property_id?: string | null
           public_slug?: string
           rent_amount?: number
@@ -524,6 +530,8 @@ export type Database = {
           due_date: string
           failure_reason: string | null
           id: string
+          late_fee_amount: number
+          late_fee_applied_at: string | null
           lease_id: string
           method: string | null
           notes: string | null
@@ -546,6 +554,8 @@ export type Database = {
           due_date: string
           failure_reason?: string | null
           id?: string
+          late_fee_amount?: number
+          late_fee_applied_at?: string | null
           lease_id: string
           method?: string | null
           notes?: string | null
@@ -568,6 +578,8 @@ export type Database = {
           due_date?: string
           failure_reason?: string | null
           id?: string
+          late_fee_amount?: number
+          late_fee_applied_at?: string | null
           lease_id?: string
           method?: string | null
           notes?: string | null
@@ -830,6 +842,39 @@ export type Database = {
         }
         Returns: boolean
       }
+      landlord_apply_late_fee: {
+        Args: { _payment_id: string }
+        Returns: {
+          amount: number
+          connected_account_id: string | null
+          created_at: string
+          destination_account_id: string | null
+          due_date: string
+          failure_reason: string | null
+          id: string
+          late_fee_amount: number
+          late_fee_applied_at: string | null
+          lease_id: string
+          method: string | null
+          notes: string | null
+          paid_at: string | null
+          payment_method_id: string | null
+          provider: string | null
+          provider_transfer_id: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          transfer_created_at: string | null
+          transfer_error: string | null
+          transfer_id: string | null
+          transfer_status: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       landlord_has_lease_with_tenant: {
         Args: { _landlord_id: string; _tenant_id: string }
         Returns: boolean
@@ -853,6 +898,8 @@ export type Database = {
           due_date: string
           failure_reason: string | null
           id: string
+          late_fee_amount: number
+          late_fee_applied_at: string | null
           lease_id: string
           method: string | null
           notes: string | null
