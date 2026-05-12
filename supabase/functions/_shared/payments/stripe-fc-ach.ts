@@ -2,13 +2,20 @@ import type { PaymentProvider, LinkedAccount, InitiateInput, InitiateResult, Web
 
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
+const STRIPE_CONNECT_WEBHOOK_SECRET = Deno.env.get('STRIPE_CONNECT_WEBHOOK_SECRET') ?? '';
 
-async function stripe(path: string, params?: Record<string, string | undefined>, idempotencyKey?: string) {
+async function stripe(
+  path: string,
+  params?: Record<string, string | undefined>,
+  idempotencyKey?: string,
+  stripeAccount?: string,
+) {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
     'Content-Type': 'application/x-www-form-urlencoded',
   };
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+  if (stripeAccount) headers['Stripe-Account'] = stripeAccount;
   const body = new URLSearchParams();
   if (params) {
     for (const [k, v] of Object.entries(params)) {
@@ -28,10 +35,10 @@ async function stripe(path: string, params?: Record<string, string | undefined>,
   return json;
 }
 
-async function stripeGet(path: string) {
-  const res = await fetch(`https://api.stripe.com/v1${path}`, {
-    headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
-  });
+async function stripeGet(path: string, stripeAccount?: string) {
+  const headers: Record<string, string> = { Authorization: `Bearer ${STRIPE_SECRET_KEY}` };
+  if (stripeAccount) headers['Stripe-Account'] = stripeAccount;
+  const res = await fetch(`https://api.stripe.com/v1${path}`, { headers });
   const json = await res.json();
   if (!res.ok) {
     console.error(`[stripe GET] ${path} failed`, json);
@@ -40,9 +47,9 @@ async function stripeGet(path: string) {
   return json;
 }
 
-// Verify Stripe webhook signature (HMAC SHA-256, t=...,v1=...)
-async function verifyStripeSignature(payload: string, header: string, secret: string): Promise<boolean> {
-  if (!header || !secret) return false;
+// Verify Stripe webhook signature against any of the provided secrets.
+async function verifyStripeSignature(payload: string, header: string, secrets: string[]): Promise<boolean> {
+  if (!header) return false;
   const parts = Object.fromEntries(header.split(',').map((p) => {
     const [k, ...rest] = p.split('=');
     return [k, rest.join('=')];
@@ -51,66 +58,67 @@ async function verifyStripeSignature(payload: string, header: string, secret: st
   const v1 = parts['v1'];
   if (!t || !v1) return false;
   const signedPayload = `${t}.${payload}`;
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedPayload));
-  const expected = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
-  // constant-time compare
-  if (expected.length !== v1.length) return false;
-  let diff = 0;
-  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ v1.charCodeAt(i);
-  return diff === 0;
+  for (const secret of secrets) {
+    if (!secret) continue;
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedPayload));
+    const expected = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    if (expected.length !== v1.length) continue;
+    let diff = 0;
+    for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ v1.charCodeAt(i);
+    if (diff === 0) return true;
+  }
+  return false;
 }
 
 export const stripeFcAchProvider: PaymentProvider = {
   name: 'stripe_fc_ach',
 
-  async createLinkToken({ userId }) {
-    // Create or reuse a Stripe customer keyed off the user id (idempotent).
+  async createLinkToken({ userId, stripeAccount }) {
+    // Create or reuse a Stripe customer keyed off the user id (idempotent),
+    // ON the connected account so the resulting PaymentMethod can be charged directly.
     const customer = await stripe('/customers', {
       'metadata[user_id]': userId,
-    }, `cus_${userId}`);
+    }, `cus_${userId}_${stripeAccount ?? 'platform'}`, stripeAccount);
 
     const session = await stripe('/financial_connections/sessions', {
       'account_holder[type]': 'customer',
       'account_holder[customer]': customer.id,
       'permissions[]': 'payment_method',
       'filters[countries][]': 'US',
-    });
+    }, undefined, stripeAccount);
 
-    // Reuse linkToken field to carry the session client_secret.
-    return { linkToken: session.client_secret };
+    return { linkToken: session.client_secret, connectedAccountId: stripeAccount };
   },
 
-  async exchangePublicToken({ accountId }): Promise<LinkedAccount> {
-    // Look up the FC account to get bank metadata + owning customer.
-    const fcAccount = await stripeGet(`/financial_connections/accounts/${accountId}`);
+  async exchangePublicToken({ accountId, stripeAccount }): Promise<LinkedAccount> {
+    const fcAccount = await stripeGet(`/financial_connections/accounts/${accountId}`, stripeAccount);
     const customerId = fcAccount.account_holder?.customer;
     if (!customerId) throw new Error('Financial Connections account is not linked to a customer');
 
-    // Create a us_bank_account PaymentMethod from the FC account.
     const pm = await stripe('/payment_methods', {
       type: 'us_bank_account',
       'us_bank_account[financial_connections_account]': accountId,
       'billing_details[name]': fcAccount.account_holder?.name || 'Tenant',
-    });
+    }, undefined, stripeAccount);
 
-    // Attach to the customer so we can charge it later.
     await stripe(`/payment_methods/${pm.id}/attach`, {
       customer: customerId,
-    });
+    }, undefined, stripeAccount);
 
     return {
-      accessToken: pm.id, // stripe payment_method id
-      providerAccountId: customerId, // stripe customer id
+      accessToken: pm.id,
+      providerAccountId: customerId,
       bankName: fcAccount.institution_name || 'Bank',
       mask: fcAccount.last4 || '••••',
       accountType: fcAccount.subcategory || fcAccount.category || 'checking',
+      connectedAccountId: stripeAccount,
     };
   },
 
@@ -129,7 +137,7 @@ export const stripeFcAchProvider: PaymentProvider = {
         description: input.description,
         'metadata[user_id]': input.userId,
         'metadata[idempotency_source]': input.idempotencyKey,
-      }, `pi_${input.idempotencyKey}`);
+      }, `pi_${input.idempotencyKey}`, input.stripeAccount);
 
       const status = intent.status as string;
       const mapped: InitiateResult['status'] = status === 'succeeded'
@@ -150,13 +158,13 @@ export const stripeFcAchProvider: PaymentProvider = {
 
   async parseWebhook(req: Request, rawBody: string): Promise<WebhookEvent[] | null> {
     const sigHeader = req.headers.get('stripe-signature') ?? '';
-    const valid = await verifyStripeSignature(rawBody, sigHeader, STRIPE_WEBHOOK_SECRET);
+    const valid = await verifyStripeSignature(rawBody, sigHeader, [STRIPE_WEBHOOK_SECRET, STRIPE_CONNECT_WEBHOOK_SECRET]);
     if (!valid) {
       console.error('[stripe webhook] invalid signature');
       return null;
     }
 
-    let event: { type?: string; data?: { object?: Record<string, unknown> } };
+    let event: { type?: string; account?: string; data?: { object?: Record<string, unknown> } };
     try { event = JSON.parse(rawBody); } catch { return null; }
     const obj = event.data?.object as Record<string, unknown> | undefined;
     if (!obj) return null;
@@ -173,13 +181,17 @@ export const stripeFcAchProvider: PaymentProvider = {
     const newStatus = event.type ? map[event.type] : undefined;
     if (!newStatus) return [];
 
-    // For charge events, look up the parent payment_intent id.
     const providerTransferId = (obj.payment_intent as string | undefined) ?? (obj.id as string);
     if (!providerTransferId) return [];
 
     const failureReason = (obj.last_payment_error as { message?: string } | undefined)?.message
       ?? (obj.failure_message as string | undefined);
 
-    return [{ providerTransferId, newStatus, failureReason }];
+    return [{
+      providerTransferId,
+      newStatus,
+      failureReason,
+      connectedAccountId: event.account,
+    }];
   },
 };

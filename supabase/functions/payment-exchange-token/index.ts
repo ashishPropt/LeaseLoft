@@ -14,7 +14,6 @@ Deno.serve(async (req) => {
 
     const sb = serviceClient();
 
-    // Find tenant's active lease to capture landlord_id
     const { data: lease, error: lerr } = await sb
       .from('leases')
       .select('landlord_id')
@@ -26,8 +25,16 @@ Deno.serve(async (req) => {
     if (lerr) throw lerr;
     if (!lease) return json({ error: 'No active lease found' }, 400);
 
+    const { data: landlord } = await sb
+      .from('profiles')
+      .select('stripe_connect_account_id')
+      .eq('id', lease.landlord_id)
+      .maybeSingle();
+    const connectedAccountId = landlord?.stripe_connect_account_id ?? '';
+    if (!connectedAccountId) return json({ error: 'Landlord has not connected a payout account yet' }, 400);
+
     const provider = getProvider();
-    const linked = await provider.exchangePublicToken({ publicToken, accountId });
+    const linked = await provider.exchangePublicToken({ publicToken, accountId, stripeAccount: connectedAccountId });
 
     const { data: pm, error: ierr } = await sb
       .from('payment_methods')
@@ -40,6 +47,7 @@ Deno.serve(async (req) => {
         bank_name: linked.bankName,
         account_mask: linked.mask,
         account_type: linked.accountType,
+        connected_account_id: linked.connectedAccountId ?? connectedAccountId,
       })
       .select('id, bank_name, account_mask, account_type, status')
       .single();
