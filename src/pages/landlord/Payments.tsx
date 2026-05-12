@@ -128,6 +128,10 @@ export default function LandlordPayments() {
         destinationAccountId: p.destination_account_id ?? null,
         providerTransferId: p.provider_transfer_id ?? null,
         failureReason: p.failure_reason ?? null,
+        lateFeeAmount: Number((p as any).late_fee_amount ?? 0),
+        lateFeeAppliedAt: (p as any).late_fee_applied_at ?? null,
+        leaseLateFeeAmount: Number((lease as any)?.late_fee_amount ?? 0),
+        leaseLateFeeGraceDays: Number((lease as any)?.late_fee_grace_days ?? 0),
         updatedAt: p.updated_at,
         createdAt: p.created_at,
       };
