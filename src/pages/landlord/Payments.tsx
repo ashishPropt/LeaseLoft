@@ -9,6 +9,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { money, shortDate } from "@/lib/format";
@@ -66,6 +67,7 @@ export default function LandlordPayments() {
   const [editing, setEditing] = useState<Row | null>(null);
   const [editStatus, setEditStatus] = useState<"paid" | "pending" | "failed">("paid");
   const [editMethod, setEditMethod] = useState<string>("manual");
+  const [editPaidAt, setEditPaidAt] = useState<string>("");
   const [editReason, setEditReason] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -169,6 +171,8 @@ export default function LandlordPayments() {
     setEditing(r);
     setEditStatus("paid");
     setEditMethod(r.method ?? "manual");
+    const today = new Date().toISOString().slice(0, 10);
+    setEditPaidAt(today);
     setEditReason("");
   };
 
@@ -178,19 +182,28 @@ export default function LandlordPayments() {
       toast({ title: "Reason required", description: "Please provide a reason for this change.", variant: "destructive" });
       return;
     }
+    let paidAtIso: string | null = null;
+    if (editStatus === "paid") {
+      if (!editPaidAt) {
+        toast({ title: "Payment date required", description: "Please select the date the payment was received.", variant: "destructive" });
+        return;
+      }
+      paidAtIso = new Date(`${editPaidAt}T12:00:00`).toISOString();
+    }
     setSaving(true);
     const { error } = await supabase.rpc("landlord_update_payment_status", {
       _payment_id: editing.id,
       _new_status: editStatus,
       _method: editMethod,
       _reason: editReason.trim(),
-    });
+      _paid_at: paidAtIso,
+    } as any);
     setSaving(false);
     if (error) {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Payment updated", description: `Status set to ${editStatus}.` });
+    toast({ title: "Payment updated", description: editStatus === "paid" ? "Marked as paid successfully." : `Status set to ${editStatus}.` });
     setEditing(null);
     load();
   };
@@ -363,6 +376,18 @@ export default function LandlordPayments() {
                   </Select>
                 </div>
               </div>
+              {editStatus === "paid" && (
+                <div className="space-y-1.5">
+                  <Label>Payment date</Label>
+                  <Input
+                    type="date"
+                    value={editPaidAt}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={e => setEditPaidAt(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Defaults to today. Use the actual date the payment was received.</p>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>Reason <span className="text-destructive">*</span></Label>
                 <Textarea
