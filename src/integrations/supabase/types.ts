@@ -883,44 +883,84 @@ export type Database = {
         Args: { _invited_user_id: string; _landlord_id: string }
         Returns: boolean
       }
-      landlord_update_payment_status: {
-        Args: {
-          _method: string
-          _new_status: Database["public"]["Enums"]["payment_status"]
-          _payment_id: string
-          _reason: string
-        }
-        Returns: {
-          amount: number
-          connected_account_id: string | null
-          created_at: string
-          destination_account_id: string | null
-          due_date: string
-          failure_reason: string | null
-          id: string
-          late_fee_amount: number
-          late_fee_applied_at: string | null
-          lease_id: string
-          method: string | null
-          notes: string | null
-          paid_at: string | null
-          payment_method_id: string | null
-          provider: string | null
-          provider_transfer_id: string | null
-          status: Database["public"]["Enums"]["payment_status"]
-          transfer_created_at: string | null
-          transfer_error: string | null
-          transfer_id: string | null
-          transfer_status: string | null
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "payments"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      landlord_update_payment_status:
+        | {
+            Args: {
+              _method: string
+              _new_status: Database["public"]["Enums"]["payment_status"]
+              _payment_id: string
+              _reason: string
+            }
+            Returns: {
+              amount: number
+              connected_account_id: string | null
+              created_at: string
+              destination_account_id: string | null
+              due_date: string
+              failure_reason: string | null
+              id: string
+              late_fee_amount: number
+              late_fee_applied_at: string | null
+              lease_id: string
+              method: string | null
+              notes: string | null
+              paid_at: string | null
+              payment_method_id: string | null
+              provider: string | null
+              provider_transfer_id: string | null
+              status: Database["public"]["Enums"]["payment_status"]
+              transfer_created_at: string | null
+              transfer_error: string | null
+              transfer_id: string | null
+              transfer_status: string | null
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "payments"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              _method: string
+              _new_status: Database["public"]["Enums"]["payment_status"]
+              _paid_at?: string
+              _payment_id: string
+              _reason: string
+            }
+            Returns: {
+              amount: number
+              connected_account_id: string | null
+              created_at: string
+              destination_account_id: string | null
+              due_date: string
+              failure_reason: string | null
+              id: string
+              late_fee_amount: number
+              late_fee_applied_at: string | null
+              lease_id: string
+              method: string | null
+              notes: string | null
+              paid_at: string | null
+              payment_method_id: string | null
+              provider: string | null
+              provider_transfer_id: string | null
+              status: Database["public"]["Enums"]["payment_status"]
+              transfer_created_at: string | null
+              transfer_error: string | null
+              transfer_id: string | null
+              transfer_status: string | null
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "payments"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       lease_id_from_object_path: { Args: { _name: string }; Returns: string }
       move_to_dlq: {
         Args: {
