@@ -67,6 +67,7 @@ export default function LandlordPayments() {
   const [editing, setEditing] = useState<Row | null>(null);
   const [editStatus, setEditStatus] = useState<"paid" | "pending" | "failed">("paid");
   const [editMethod, setEditMethod] = useState<string>("manual");
+  const [editPaidAt, setEditPaidAt] = useState<string>("");
   const [editReason, setEditReason] = useState("");
   const [saving, setSaving] = useState(false);
 
