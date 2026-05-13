@@ -376,6 +376,18 @@ export default function LandlordPayments() {
                   </Select>
                 </div>
               </div>
+              {editStatus === "paid" && (
+                <div className="space-y-1.5">
+                  <Label>Payment date</Label>
+                  <Input
+                    type="date"
+                    value={editPaidAt}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={e => setEditPaidAt(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Defaults to today. Use the actual date the payment was received.</p>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>Reason <span className="text-destructive">*</span></Label>
                 <Textarea
