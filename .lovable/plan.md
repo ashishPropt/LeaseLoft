@@ -1,40 +1,18 @@
-## Problem
+## Change
 
-Tenants get `new row violates row-level security policy for table payments` when clicking **Pay rent** or **Pay by card**. Both flows in `src/pages/tenant/PayRent.tsx` do a client-side `supabase.from("payments").insert(...)` to create a pending row before invoking the edge function.
+Replace the explicit `payment_method_types[]=us_bank_account` parameter on the PaymentIntent with Stripe's `automatic_payment_methods` so Stripe selects the right payment method type from what's enabled on the connected account.
 
-The `payments` table only has these policies:
-- `landlords manage payments` (ALL)
-- `landlords / tenants / admins` SELECT policies
+## Why this helps
 
-There is **no INSERT policy for tenants**, so the client insert is rejected.
+The current Stripe error comes from explicitly requesting `us_bank_account` on a connected account where that type isn't activated. With `automatic_payment_methods[enabled]=true` and `automatic_payment_methods[allow_redirects]=never`, Stripe accepts whatever the attached `payment_method` actually is (the FC-linked `us_bank_account` PaymentMethod) without forcing us to whitelist the type up front. We avoid the `payment_intent_invalid_parameter` error path.
 
-## Fix
+Note: this only changes how the PaymentIntent is created — the connected account still needs the `us_bank_account_payments` capability to actually settle ACH. If the capability is missing, Stripe will now return a clearer "capability not active" error from confirmation, which we'll surface verbatim to the tenant.
 
-Add an RLS INSERT policy that lets a tenant create a pending payment row only for a lease they're on, and only with safe initial values.
+## File touched
 
-```sql
-CREATE POLICY "tenants insert own pending payments"
-ON public.payments
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  status = 'pending'
-  AND paid_at IS NULL
-  AND EXISTS (
-    SELECT 1 FROM public.leases l
-    WHERE l.id = payments.lease_id
-      AND l.tenant_id = auth.uid()
-  )
-);
-```
+- `supabase/functions/_shared/payments/stripe-fc-ach.ts` — in `initiatePayment`, swap:
+  - Remove: `'payment_method_types[]': 'us_bank_account'`
+  - Add: `'automatic_payment_methods[enabled]': 'true'`, `'automatic_payment_methods[allow_redirects]': 'never'`
+  - Keep `payment_method`, `confirm`, mandate data, customer, metadata, and the existing idempotency key as-is.
 
-Constraints in the `WITH CHECK`:
-- Tenant must be the `tenant_id` on the referenced lease.
-- Row must start as `pending` with no `paid_at` (status is later moved to `processing` / `paid` by the service-role edge functions, which bypass RLS).
-
-No frontend changes needed — `PayRent.tsx` already inserts with `status: "pending"` and no `paid_at`.
-
-## Scope
-
-- One migration adding the policy above.
-- No code changes, no schema changes.
+No DB changes. No frontend changes. Only the one edge function file is updated and redeployed.
