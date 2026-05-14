@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
         email: profile?.email ?? user.email ?? '',
         'capabilities[transfers][requested]': 'true',
         'capabilities[card_payments][requested]': 'true',
-        'capabilities[us_bank_account_payments][requested]': 'true',
+        'capabilities[us_bank_account_ach_payments][requested]': 'true',
         country: 'US',
         'business_type': 'individual',
         'metadata[user_id]': user.id,
@@ -73,10 +73,10 @@ Deno.serve(async (req) => {
       // Ensure ACH capability is requested on existing accounts (idempotent).
       try {
         await stripe(`/accounts/${accountId}`, {
-          'capabilities[us_bank_account_payments][requested]': 'true',
+          'capabilities[us_bank_account_ach_payments][requested]': 'true',
         });
       } catch (e) {
-        console.warn('[stripe-connect-onboard] could not request us_bank_account_payments', (e as Error).message);
+        console.warn('[stripe-connect-onboard] could not request us_bank_account_ach_payments', (e as Error).message);
       }
     }
 
