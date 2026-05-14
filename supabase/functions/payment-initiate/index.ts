@@ -21,9 +21,17 @@ Deno.serve(async (req) => {
       .single();
     if (perr || !payment) return json({ error: 'Payment not found' }, 404);
     // @ts-ignore nested
-    if (payment.leases.tenant_id !== user.id) return json({ error: 'Forbidden' }, 403);
+    const leaseTenantId = payment.leases.tenant_id as string;
+    // @ts-ignore nested
+    const landlordId = payment.leases.landlord_id as string;
+    const leaseId = payment.lease_id as string;
+
+    if (leaseTenantId !== user.id) {
+      console.warn('[payment-initiate] tenant mismatch', { user: user.id, leaseId, leaseTenantId });
+      return json({ error: 'You are not the tenant on this lease.', code: 'NOT_LEASE_TENANT', lease_id: leaseId }, 403);
+    }
     if (payment.status === 'paid' || payment.status === 'processing') {
-      return json({ error: `Payment already ${payment.status}` }, 409);
+      return json({ error: `Payment already ${payment.status}`, code: 'PAYMENT_NOT_PAYABLE' }, 409);
     }
 
     const { data: pm, error: merr } = await sb
@@ -31,24 +39,61 @@ Deno.serve(async (req) => {
       .select('id, tenant_id, provider, provider_account_id, provider_access_token, status, connected_account_id')
       .eq('id', paymentMethodId)
       .single();
-    if (merr || !pm) return json({ error: 'Payment method not found' }, 404);
-    if (pm.tenant_id !== user.id) return json({ error: 'Forbidden' }, 403);
-    if (pm.status !== 'active') return json({ error: 'Payment method revoked' }, 400);
-    if (!pm.connected_account_id) return json({ error: 'Bank account is no longer valid. Please re-link your bank.' }, 400);
+    if (merr || !pm) return json({ error: 'Payment method not found', code: 'PM_NOT_FOUND' }, 404);
+    if (pm.tenant_id !== user.id) {
+      console.warn('[payment-initiate] payment method does not belong to caller', { user: user.id, pm: pm.id });
+      return json({ error: 'This bank account does not belong to you.', code: 'PM_NOT_OWNED' }, 403);
+    }
+    if (pm.status !== 'active') return json({ error: 'Payment method revoked', code: 'PM_REVOKED' }, 400);
+    if (!pm.connected_account_id) {
+      return json({ error: 'This bank account is no longer linked to a landlord. Please re-link your bank.', code: 'PM_NO_CONNECTED_ACCOUNT', lease_id: leaseId }, 400);
+    }
 
-    // Verify connected account still matches this lease's landlord
-    // @ts-ignore embedded
-    const landlordId = payment.leases.landlord_id as string;
+    // Verify connected account still matches this lease's landlord — hard block on mismatch.
     const { data: landlord } = await sb
       .from('profiles')
-      .select('stripe_connect_account_id, stripe_connect_charges_enabled')
+      .select('id, full_name, email, stripe_connect_account_id, stripe_connect_charges_enabled')
       .eq('id', landlordId)
       .maybeSingle();
-    if (!landlord?.stripe_connect_account_id || landlord.stripe_connect_account_id !== pm.connected_account_id) {
-      return json({ error: 'Bank account is linked to a different landlord. Please re-link your bank.' }, 400);
+
+    if (!landlord) {
+      console.error('[payment-initiate] landlord profile missing', { landlordId, leaseId });
+      return json({ error: 'Landlord account is not available.', code: 'LANDLORD_NOT_FOUND', lease_id: leaseId, landlord_id: landlordId }, 400);
+    }
+    if (!landlord.stripe_connect_account_id) {
+      return json({
+        error: 'This landlord has not connected a payout account yet. Ask them to finish Stripe setup before paying.',
+        code: 'LANDLORD_NOT_CONNECTED',
+        lease_id: leaseId,
+        landlord_id: landlordId,
+      }, 400);
+    }
+    if (landlord.stripe_connect_account_id !== pm.connected_account_id) {
+      console.warn('[payment-initiate] connected_account mismatch — blocking', {
+        user: user.id,
+        leaseId,
+        landlordId,
+        landlord_connected_account: landlord.stripe_connect_account_id,
+        pm_connected_account: pm.connected_account_id,
+        payment_method_id: pm.id,
+      });
+      const landlordLabel = landlord.full_name || landlord.email || 'the landlord on this lease';
+      return json({
+        error: `This bank account was linked for a different landlord and cannot be used to pay ${landlordLabel}. Please re-link your bank from the Pay Rent page for this lease.`,
+        code: 'CONNECTED_ACCOUNT_MISMATCH',
+        lease_id: leaseId,
+        landlord_id: landlordId,
+        expected_connected_account_id: landlord.stripe_connect_account_id,
+        payment_method_connected_account_id: pm.connected_account_id,
+      }, 409);
     }
     if (!landlord.stripe_connect_charges_enabled) {
-      return json({ error: 'Landlord cannot accept payments yet' }, 400);
+      return json({
+        error: 'Landlord cannot accept payments yet — their Stripe account has not finished verification.',
+        code: 'LANDLORD_CHARGES_DISABLED',
+        lease_id: leaseId,
+        landlord_id: landlordId,
+      }, 400);
     }
 
     const { data: profile } = await sb
