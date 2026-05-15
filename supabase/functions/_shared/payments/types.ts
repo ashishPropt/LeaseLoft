@@ -37,7 +37,7 @@ export interface WebhookEvent {
 
 export interface PaymentProvider {
   name: ProviderName;
-  createLinkToken(input: { userId: string; stripeAccount?: string }): Promise<{ linkToken: string; connectedAccountId?: string }>;
+  createLinkToken(input: { userId: string; userName?: string; stripeAccount?: string }): Promise<{ linkToken: string; connectedAccountId?: string }>;
   exchangePublicToken(input: { publicToken?: string; accountId: string; stripeAccount?: string }): Promise<LinkedAccount>;
   initiatePayment(input: InitiateInput): Promise<InitiateResult>;
   parseWebhook(req: Request, rawBody: string): Promise<WebhookEvent[] | null>;

@@ -80,11 +80,12 @@ async function verifyStripeSignature(payload: string, header: string, secrets: s
 export const stripeFcAchProvider: PaymentProvider = {
   name: 'stripe_fc_ach',
 
-  async createLinkToken({ userId, stripeAccount }) {
+  async createLinkToken({ userId, userName, stripeAccount }) {
     // Create or reuse a Stripe customer keyed off the user id (idempotent),
     // ON the connected account so the resulting PaymentMethod can be charged directly.
     const customer = await stripe('/customers', {
       'metadata[user_id]': userId,
+      name: userName || undefined,
     }, `cus_${userId}_${stripeAccount ?? 'platform'}`, stripeAccount);
 
     const session = await stripe('/financial_connections/sessions', {

@@ -30,8 +30,15 @@ Deno.serve(async (req) => {
     if (!connectedAccountId) return json({ error: 'Landlord has not connected a payout account yet' }, 400);
     if (!landlord?.stripe_connect_charges_enabled) return json({ error: 'Landlord cannot accept payments yet' }, 400);
 
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('full_name, first_name, last_name')
+      .eq('id', user.id)
+      .maybeSingle();
+    const userName = profile?.full_name || `${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim() || undefined;
+
     const provider = getProvider();
-    const { linkToken } = await provider.createLinkToken({ userId: user.id, stripeAccount: connectedAccountId });
+    const { linkToken } = await provider.createLinkToken({ userId: user.id, userName, stripeAccount: connectedAccountId });
     const publishableKey = Deno.env.get('STRIPE_PUBLISHABLE_KEY') ?? '';
     return json({
       link_token: linkToken,
