@@ -189,10 +189,22 @@ export default function LandlordPropertyDetail() {
             {[property.address, property.city, property.state, property.zip].filter(Boolean).join(", ") || "—"}
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Add unit</Button>
-          </DialogTrigger>
+        <div className="flex flex-col items-end gap-2">
+          {usage.max !== null && (
+            <span className="text-xs text-muted-foreground">{usage.used} of {usage.max} units used</span>
+          )}
+          {usage.reason && (
+            <span className="text-xs text-destructive max-w-[260px] text-right">{usage.reason}</span>
+          )}
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button
+                onClick={openNew}
+                disabled={usage.reason !== null || (usage.max !== null && usage.used >= usage.max)}
+              >
+                <Plus className="w-4 h-4 mr-2" />Add unit
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{form.id ? "Edit unit" : "New unit"}</DialogTitle>
