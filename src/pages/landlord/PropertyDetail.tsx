@@ -234,7 +234,8 @@ export default function LandlordPropertyDetail() {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card mt-6 overflow-x-auto">
