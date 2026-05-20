@@ -136,7 +136,15 @@ export default function LandlordPropertyDetail() {
       ? await supabase.from("units").update(payload).eq("id", form.id)
       : await supabase.from("units").insert(payload);
     setSaving(false);
-    if (res.error) { toast.error(res.error.message); return; }
+    if (res.error) {
+      const msg = res.error.message || "";
+      if (msg.includes("Plan limit reached") || msg.includes("Active subscription required") || msg.includes("plan")) {
+        toast.error(msg.replace(/^.*?:\s*/, ""));
+      } else {
+        toast.error(msg);
+      }
+      return;
+    }
     toast.success(form.id ? "Unit updated" : "Unit added");
     setOpen(false);
     await load();
