@@ -26,6 +26,7 @@ import AdminUsers from "./pages/admin/Users.tsx";
 import AdminInvites from "./pages/admin/Invites.tsx";
 import AdminRequests from "./pages/admin/Requests.tsx";
 import AdminProperties from "./pages/admin/Properties.tsx";
+import AdminPlanLimits from "./pages/admin/PlanLimits.tsx";
 import RequestInvite from "./pages/RequestInvite.tsx";
 import Legal from "./pages/Legal.tsx";
 import Unsubscribe from "./pages/Unsubscribe.tsx";
@@ -74,6 +75,7 @@ const App = () => (
           <Route path="/admin/requests" element={<AdminRequests />} />
           <Route path="/admin/invites" element={<AdminInvites />} />
           <Route path="/admin/properties" element={<AdminProperties />} />
+          <Route path="/admin/plan-limits" element={<AdminPlanLimits />} />
 
           <Route path="/tenant" element={<TenantDashboard />} />
           <Route path="/tenant/lease" element={<TenantLease />} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, Ticket, Building2, Inbox } from "lucide-react";
+import { Users, Ticket, Building2, Inbox, Gauge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AppSidebar, NavItem } from "./AppSidebar";
@@ -7,10 +7,11 @@ import { PageHeader } from "./PageHeader";
 import { useIdleLogout } from "@/lib/useIdleLogout";
 
 const items: NavItem[] = [
-  { to: "/admin",            label: "Users",      icon: Users },
-  { to: "/admin/requests",   label: "Requests",   icon: Inbox },
-  { to: "/admin/invites",    label: "Invites",    icon: Ticket },
-  { to: "/admin/properties", label: "Properties", icon: Building2 },
+  { to: "/admin",              label: "Users",        icon: Users },
+  { to: "/admin/requests",     label: "Requests",     icon: Inbox },
+  { to: "/admin/invites",      label: "Invites",      icon: Ticket },
+  { to: "/admin/properties",   label: "Properties",   icon: Building2 },
+  { to: "/admin/plan-limits",  label: "Plan Limits",  icon: Gauge },
 ];
 
 export const AdminLayout = ({ crumbs, children }: { crumbs: string[]; children: React.ReactNode }) => {
