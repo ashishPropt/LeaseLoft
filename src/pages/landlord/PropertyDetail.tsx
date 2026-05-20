@@ -44,13 +44,51 @@ export default function LandlordPropertyDetail() {
   const [form, setForm] = useState<UnitForm>(emptyUnit);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [usage, setUsage] = useState<{ used: number; max: number | null; reason: string | null }>({ used: 0, max: null, reason: null });
+
+  async function loadUsage(ownerId: string) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("stripe_subscription_status, subscription_price_id")
+      .eq("id", ownerId)
+      .maybeSingle();
+    const status = prof?.stripe_subscription_status ?? null;
+    const priceId = prof?.subscription_price_id ?? null;
+
+    const { data: ownerProps } = await supabase.from("properties").select("id").eq("owner_id", ownerId);
+    const ids = (ownerProps ?? []).map(p => p.id);
+    let used = 0;
+    if (ids.length) {
+      const { count } = await supabase.from("units").select("id", { count: "exact", head: true }).in("property_id", ids);
+      used = count ?? 0;
+    }
+
+    if (!status || !["active", "trialing"].includes(status)) {
+      setUsage({ used, max: null, reason: "Active subscription required to add units." });
+      return;
+    }
+    if (!priceId) {
+      setUsage({ used, max: null, reason: "Your plan does not allow adding units. Contact support." });
+      return;
+    }
+    const { data: limit } = await supabase
+      .from("plan_unit_limits")
+      .select("max_units")
+      .eq("stripe_price_id", priceId)
+      .maybeSingle();
+    if (!limit) {
+      setUsage({ used, max: null, reason: "Your plan has no unit allowance configured. Contact support." });
+      return;
+    }
+    setUsage({ used, max: limit.max_units, reason: null });
+  }
 
   async function load() {
     if (!slug) return;
     setLoading(true);
     const { data: prop } = await supabase
       .from("properties")
-      .select("id,public_slug,name,address,city,state,zip")
+      .select("id,public_slug,name,address,city,state,zip,owner_id")
       .eq("public_slug", slug)
       .maybeSingle();
     setProperty(prop as Property | null);
@@ -61,6 +99,7 @@ export default function LandlordPropertyDetail() {
         .eq("property_id", prop.id)
         .order("label", { ascending: true });
       setUnits((u ?? []) as Unit[]);
+      await loadUsage((prop as any).owner_id);
     } else {
       setUnits([]);
     }
