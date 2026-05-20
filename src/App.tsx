@@ -75,6 +75,7 @@ const App = () => (
           <Route path="/admin/requests" element={<AdminRequests />} />
           <Route path="/admin/invites" element={<AdminInvites />} />
           <Route path="/admin/properties" element={<AdminProperties />} />
+          <Route path="/admin/plan-limits" element={<AdminPlanLimits />} />
 
           <Route path="/tenant" element={<TenantDashboard />} />
           <Route path="/tenant/lease" element={<TenantLease />} />
