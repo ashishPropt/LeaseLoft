@@ -611,6 +611,33 @@ export type Database = {
           },
         ]
       }
+      plan_unit_limits: {
+        Row: {
+          created_at: string
+          id: string
+          label: string | null
+          max_units: number
+          stripe_price_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          max_units: number
+          stripe_price_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          max_units?: number
+          stripe_price_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
