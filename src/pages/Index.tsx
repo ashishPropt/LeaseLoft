@@ -96,7 +96,31 @@ const Index = () => {
             ))}
           </div>
         </section>
-      </main>
+
+        <section className="container pb-24">
+          <div className="max-w-3xl">
+            <h2 className="text-3xl lg:text-4xl font-medium tracking-tight text-foreground">Everything you need in one place</h2>
+            <p className="text-muted-foreground mt-3 leading-relaxed">A complete toolkit for landlords and tenants — no plug-ins, no spreadsheets.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
+            {[
+              { icon: Home, title: "Lease Management", body: "Streamline the entire lease lifecycle from digital signing to renewals — all in one secure place." },
+              { icon: CreditCard, title: "Online Rent Payments", body: "Tenants pay rent easily online; landlords receive funds fast with automatic tracking and receipts." },
+              { icon: Wrench, title: "Maintenance Requests", body: "Tenants submit requests instantly; landlords manage, assign, and track repairs with full visibility." },
+              { icon: Lock, title: "Secure & Private", body: "Bank-grade security keeps all your lease documents, payment data, and communications protected." },
+              { icon: LayoutDashboard, title: "Real-Time Dashboard", body: "Get a clear overview of your properties, pending tasks, and financials at a single glance." },
+              { icon: Smartphone, title: "Works Everywhere", body: "Access LeaseLoft from any device — desktop, tablet, or mobile — whenever you need it." },
+            ].map(({ icon: Icon, title, body }) => (
+              <div key={title} className="rounded-xl border border-border bg-card p-6 shadow-card">
+                <div className="w-10 h-10 rounded-lg bg-primary-tint text-primary grid place-items-center">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <h3 className="font-medium text-foreground mt-4">{title}</h3>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
       <footer className="border-t border-border">
         <div className="container py-8 flex items-center justify-between text-sm text-muted-foreground">
