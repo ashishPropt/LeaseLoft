@@ -4,7 +4,7 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutCompletely } from "@/lib/signOut";
-import { ArrowRight, ShieldCheck, KeyRound, Building2 } from "lucide-react";
+import { ArrowRight, ShieldCheck, KeyRound, Building2, Home, CreditCard, Wrench, Lock, LayoutDashboard, Smartphone } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
