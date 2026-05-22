@@ -121,6 +121,8 @@ const Index = () => {
             ))}
           </div>
         </section>
+      </main>
+
 
       <footer className="border-t border-border">
         <div className="container py-8 flex items-center justify-between text-sm text-muted-foreground">
