@@ -121,6 +121,25 @@ const Index = () => {
             ))}
           </div>
         </section>
+
+        <section className="container pb-24">
+          <div className="rounded-2xl border border-border bg-gradient-dark text-white p-10 lg:p-14 text-center">
+            <div className="text-3xl mb-4">🚀</div>
+            <h2 className="text-2xl lg:text-3xl font-medium tracking-tight">
+              It's free to get started — no credit card required.
+            </h2>
+            <p className="text-primary-light/80 mt-3 leading-relaxed max-w-xl mx-auto">
+              Reach out today to learn more and get early access to LeaseLoft.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 mt-8">
+              <Button size="lg" asChild>
+                <Link to="/request-invite">
+                  Request an invite <ArrowRight className="ml-1 w-4 h-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
       </main>
 
 
