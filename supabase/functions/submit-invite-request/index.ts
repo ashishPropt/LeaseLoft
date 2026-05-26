@@ -36,32 +36,30 @@ Deno.serve(async (req) => {
     if (requested_role !== 'landlord' && requested_role !== 'tenant') {
       return json({ error: 'Role must be landlord or tenant' }, 400);
     }
-    if (!turnstileToken) return json({ error: 'Human verification required' }, 400);
-
     const secret = Deno.env.get('TURNSTILE_SECRET_KEY');
-    if (!secret) {
-      console.error('[submit-invite-request] TURNSTILE_SECRET_KEY not configured');
-      return json({ error: 'Server misconfiguration' }, 500);
-    }
 
-    // Verify Turnstile token with Cloudflare
-    const remoteIp = req.headers.get('cf-connecting-ip')
-      || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-      || '';
-    const verifyForm = new FormData();
-    verifyForm.append('secret', secret);
-    verifyForm.append('response', turnstileToken);
-    if (remoteIp) verifyForm.append('remoteip', remoteIp);
+    // Only enforce Turnstile when it is configured
+    if (secret) {
+      if (!turnstileToken) return json({ error: 'Human verification required' }, 400);
 
-    const verifyRes = await fetch(
-      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-      { method: 'POST', body: verifyForm },
-    );
-    const verifyData = await verifyRes.json() as { success: boolean; 'error-codes'?: string[] };
+      const remoteIp = req.headers.get('cf-connecting-ip')
+        || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || '';
+      const verifyForm = new FormData();
+      verifyForm.append('secret', secret);
+      verifyForm.append('response', turnstileToken);
+      if (remoteIp) verifyForm.append('remoteip', remoteIp);
 
-    if (!verifyData.success) {
-      console.warn('[submit-invite-request] Turnstile failed', verifyData['error-codes']);
-      return json({ error: 'Human verification failed. Please try again.' }, 400);
+      const verifyRes = await fetch(
+        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+        { method: 'POST', body: verifyForm },
+      );
+      const verifyData = await verifyRes.json() as { success: boolean; 'error-codes'?: string[] };
+
+      if (!verifyData.success) {
+        console.warn('[submit-invite-request] Turnstile failed', verifyData['error-codes']);
+        return json({ error: 'Human verification failed. Please try again.' }, 400);
+      }
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

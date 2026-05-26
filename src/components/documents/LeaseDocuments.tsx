@@ -10,6 +10,7 @@ import {
   sanitizeFileName,
   validateDocumentFile,
 } from "@/lib/documentLimits";
+import { randomUUID } from "@/lib/device";
 
 interface Doc {
   id: string;
@@ -65,7 +66,7 @@ export function LeaseDocuments({ leaseId, currentUserId, uploaderLabels = {}, ca
         toast({ title: `Skipped ${file.name}`, description: err, variant: "destructive" });
         continue;
       }
-      const path = `lease/${leaseId}/${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
+      const path = `lease/${leaseId}/${randomUUID()}-${sanitizeFileName(file.name)}`;
       const { error: upErr } = await supabase.storage
         .from("documents")
         .upload(path, file, { contentType: file.type, upsert: false });

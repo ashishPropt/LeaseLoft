@@ -1040,7 +1040,7 @@ export type Database = {
       invite_request_status: "pending" | "approved" | "rejected"
       lease_status: "draft" | "active" | "ended" | "terminated"
       maintenance_priority: "low" | "medium" | "high" | "urgent"
-      maintenance_status: "open" | "in_progress" | "resolved" | "closed"
+      maintenance_status: "open" | "in_progress" | "resolved" | "closed" | "completed"
       payment_status:
         | "pending"
         | "paid"
@@ -1179,7 +1179,7 @@ export const Constants = {
       invite_request_status: ["pending", "approved", "rejected"],
       lease_status: ["draft", "active", "ended", "terminated"],
       maintenance_priority: ["low", "medium", "high", "urgent"],
-      maintenance_status: ["open", "in_progress", "resolved", "closed"],
+      maintenance_status: ["open", "in_progress", "resolved", "closed", "completed"],
       payment_status: [
         "pending",
         "paid",

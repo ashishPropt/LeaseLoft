@@ -12,6 +12,7 @@ import { useTenantContext } from "@/lib/useTenantContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { monthDay } from "@/lib/format";
+import { randomUUID } from "@/lib/device";
 
 interface Item {
   id: string; title: string; description: string | null;
@@ -47,69 +48,84 @@ export default function TenantMaintenance() {
     if (!ctx?.lease || !ctx.userId) return;
     if (!form.title.trim()) return toast({ title: "Title is required", variant: "destructive" });
     setSubmitting(true);
-    const newId = crypto.randomUUID();
-    const { error } = await supabase.from("maintenance_requests").insert({
-      id: newId,
-      lease_id: ctx.lease.id,
-      created_by: ctx.userId,
-      title: form.title,
-      description: form.description || null,
-      priority: form.priority,
-    });
-    setSubmitting(false);
-    if (error) return toast({ title: "Could not submit", description: error.message, variant: "destructive" });
-
-    // Notify landlord (best-effort, non-blocking)
+    let error: any = null;
     try {
-      const [{ data: lease }, { data: tenantProf }] = await Promise.all([
-        supabase.from("leases").select("landlord_id, unit_id").eq("id", ctx.lease.id).maybeSingle(),
-        supabase.from("profiles").select("full_name,first_name,last_name,email").eq("id", ctx.userId).maybeSingle(),
-      ]);
-      if (lease?.landlord_id) {
-        const { data: landlordProf } = await supabase
-          .from("profiles")
-          .select("email,full_name,first_name")
-          .eq("id", lease.landlord_id)
-          .maybeSingle();
-        const { data: unit } = await supabase
-          .from("units")
-          .select("label, property_id")
-          .eq("id", lease.unit_id)
-          .maybeSingle();
-        const { data: prop } = unit?.property_id
-          ? await supabase.from("properties").select("name").eq("id", unit.property_id).maybeSingle()
-          : { data: null as any };
-        if (landlordProf?.email) {
-          const tenantName = tenantProf?.full_name
-            || `${tenantProf?.first_name ?? ""} ${tenantProf?.last_name ?? ""}`.trim()
-            || tenantProf?.email || "Your tenant";
-          const landlordName = landlordProf.full_name || landlordProf.first_name || "";
-          await supabase.functions.invoke("send-transactional-email", {
-            body: {
-              templateName: "maintenance-request-created",
-              recipientEmail: landlordProf.email,
-              idempotencyKey: `maint-created-${newId}`,
-              templateData: {
-                landlordName,
-                tenantName,
-                unitLabel: unit?.label ?? "",
-                propertyName: prop?.name ?? "",
-                title: form.title,
-                description: form.description || "",
-                priority: form.priority[0].toUpperCase() + form.priority.slice(1),
-              },
-            },
-          });
-        }
+      const newId = randomUUID();
+      const res = await supabase.from("maintenance_requests").insert({
+        id: newId,
+        lease_id: ctx.lease.id,
+        created_by: ctx.userId,
+        title: form.title,
+        description: form.description || null,
+        priority: form.priority,
+      });
+      error = res.error;
+
+      if (!error) {
+        // Close dialog and show success immediately — don't wait for email
+        toast({ title: "Request submitted" });
+        setForm({ title: "", description: "", priority: "medium" });
+        setOpen(false);
+        load();
+
+        // Notify landlord fire-and-forget (never blocks the UI)
+        const leaseId = ctx.lease.id;
+        const userId = ctx.userId;
+        const title = form.title;
+        const description = form.description;
+        const priority = form.priority;
+        void (async () => {
+          try {
+            const [{ data: lease }, { data: tenantProf }] = await Promise.all([
+              supabase.from("leases").select("landlord_id, unit_id").eq("id", leaseId).maybeSingle(),
+              supabase.from("profiles").select("full_name,first_name,last_name,email").eq("id", userId).maybeSingle(),
+            ]);
+            if (!lease?.landlord_id) return;
+            const [{ data: landlordProf }, { data: unit }] = await Promise.all([
+              supabase.from("profiles").select("email,full_name,first_name").eq("id", lease.landlord_id).maybeSingle(),
+              supabase.from("units").select("label, property_id").eq("id", lease.unit_id).maybeSingle(),
+            ]);
+            const { data: prop } = unit?.property_id
+              ? await supabase.from("properties").select("name").eq("id", unit.property_id).maybeSingle()
+              : { data: null as any };
+            if (!landlordProf?.email) return;
+            const tenantName = tenantProf?.full_name
+              || `${tenantProf?.first_name ?? ""} ${tenantProf?.last_name ?? ""}`.trim()
+              || tenantProf?.email || "Your tenant";
+            const landlordName = landlordProf.full_name || landlordProf.first_name || "";
+            await Promise.race([
+              supabase.functions.invoke("send-transactional-email", {
+                body: {
+                  templateName: "maintenance-request-created",
+                  recipientEmail: landlordProf.email,
+                  idempotencyKey: `maint-created-${newId}`,
+                  templateData: {
+                    landlordName, tenantName,
+                    unitLabel: unit?.label ?? "",
+                    propertyName: prop?.name ?? "",
+                    title, description: description || "",
+                    priority: priority[0].toUpperCase() + priority.slice(1),
+                  },
+                },
+              }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("email timeout")), 10000)),
+            ]);
+          } catch (e) {
+            console.error("notify landlord failed", e);
+          }
+        })();
       }
-    } catch (e) {
-      console.error("notify landlord failed", e);
+    } catch (e: any) {
+      console.error("submit error", e);
+      error = e;
+    } finally {
+      setSubmitting(false);
+    }
+    if (error) {
+      const msg = error?.message || String(error) || "Unknown error";
+      toast({ title: "Could not submit", description: msg, variant: "destructive" });
     }
 
-    toast({ title: "Request submitted" });
-    setForm({ title: "", description: "", priority: "medium" });
-    setOpen(false);
-    load();
   }
 
 

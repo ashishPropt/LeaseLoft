@@ -116,7 +116,7 @@ const RequestInvite = () => {
       toast.error(first || "Please fill out all required fields");
       return;
     }
-    if (!token) {
+    if (siteKey !== null && !token) {
       toast.error("Please complete the human verification");
       return;
     }
@@ -242,7 +242,7 @@ const RequestInvite = () => {
         <Button
           type="submit"
           className="w-full"
-          disabled={submitting || !form.requested_role || !token}
+          disabled={submitting || !form.requested_role || (siteKey !== null && !token)}
         >
           {submitting ? "Submitting…" : "Request invite code"}
         </Button>
