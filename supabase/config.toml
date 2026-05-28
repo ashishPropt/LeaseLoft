@@ -15,6 +15,8 @@ project_id = "mluhflymayiyhiwnbwqf"
     verify_jwt = true
   [functions.send-transactional-email]
     verify_jwt = true
+  [functions.maintenance-chat]
+    verify_jwt = true
   [functions.submit-invite-request]
     verify_jwt = false
   [functions.turnstile-config]
